@@ -1,0 +1,28 @@
+version: '3.9'
+
+services:
+  
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: backend
+    
+    image: laptq-tracking-emerges-by-colorizing-videos
+
+    stdin_open: true
+    tty: true
+
+    environment:
+      DISPLAY: '${DISPLAY}'
+      QT_X11_NO_MITSHM: 1
+    
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      # - '${HOME}/.Xauthority:/root/.Xauthority'
+      - .:/source
+    
+    ipc: host
+    shm_size: '2g'
+    privileged: true
+    network_mode: "host"

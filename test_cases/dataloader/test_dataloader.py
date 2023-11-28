@@ -6,8 +6,21 @@ ROOT_DIR = HERE.parent.parent
 
 sys.path.append(str(ROOT_DIR))
 
+# ==================================================================================================
+
 import src as GLOBAL
-LOGGER = GLOBAL.LOGGER
+from src.dataloader import load_module
+
+DATALOADER_CONFIG = GLOBAL.CONFIG['dataloader']
+
+dataloader = load_module(
+    module_name=DATALOADER_CONFIG['module_name']
+)(
+    **DATALOADER_CONFIG['kwargs']
+)
+
+input_, label = next(iter(dataloader))
+print(input_)
 
 
 

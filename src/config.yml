@@ -1,15 +1,18 @@
-# path in config.yml is either an absolute path or relative to the repo directory
+# paths in config.yml are either an absolute path or relative to the repo directory
 
 dataloader:
   module_name: fake
   kwargs:
     dataset_dir: datasets/k700-2020
     n_references: 3
-    image_size: (256, 256)
+    image_size: [256, 256]
+    n_samples: 1024
+    batch_size: 32
+    shuffle: True
 
 logging:
   level: INFO
-  format: "%(asctime)24s |%(module)10s |%(funcName)20s |%(lineno)5d |%(levelname)8s |%(message)s"
+  format: " %(asctime)23s | %(module)10s | %(funcName)20s | %(lineno)5d | %(levelname)8s | %(message)s"
   handlers:
     file: logs   # directory to save log files
     stream: stdout

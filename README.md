@@ -25,3 +25,5 @@ Open the repo directory via docker container or switch to the virtual environmen
 chmod +x setup.sh
 ./setup.sh
 ```
+
+**Note**: The script only download a subset of Kinetics 700 dataset, please view the script if you want to make change. Please make sure you have enough space to download it.

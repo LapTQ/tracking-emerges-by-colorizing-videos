@@ -1,17 +1,15 @@
-from .. import BaseMyDataset, BaseMyDataLoader
+from torch.utils.data import Dataset
 import numpy as np
 import cv2
 from torchvision.transforms import ToTensor
 
-class MyDataset(BaseMyDataset):
+class CustomDataset(Dataset):
 
     def __init__(
             self,
             **kwargs
     ):
-        
         # parse kwargs
-        self.dataset_dir = kwargs['dataset_dir']
         self.n_references = kwargs['n_references']
         self.image_size = kwargs['image_size']      # (W, H)
         self.n_samples = kwargs['n_samples']
@@ -44,24 +42,4 @@ class MyDataset(BaseMyDataset):
         label.append(ToTensor()(target_image.copy()))
         
         return input_, label
-
-
-class MyDataLoader(BaseMyDataLoader):
-
-    def __init__(self, **kwargs):
-        dataset = MyDataset(
-            dataset_dir=kwargs['dataset_dir'],
-            n_references=kwargs['n_references'],
-            image_size=kwargs['image_size'],
-            n_samples=kwargs['n_samples']
-        )
-        batch_size = kwargs['batch_size']
-        shuffle = kwargs['shuffle']
-        
-        super().__init__(
-            dataset=dataset,
-            batch_size=batch_size,
-            shuffle=shuffle
-        )
-    
 

@@ -1,6 +1,6 @@
 # paths in config.yml are either an absolute path or relative to the repo directory
 
-dataloader:
+dataset:
   module_name: fake
   kwargs:
     dataset_dir: datasets/k700-2020

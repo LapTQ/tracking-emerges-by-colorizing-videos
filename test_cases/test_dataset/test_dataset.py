@@ -30,8 +30,6 @@ def fake_train_dataset():
     config['kwargs']['batch_size'] = 32
     config['kwargs']['shuffle'] = True
 
-    assert config['kwargs']['batch_size'] % (config['kwargs']['n_references'] + 1) == 0
-
     dataset = dataset_factory(
         module_name=config['module_name']
     )(
@@ -58,6 +56,8 @@ def test_custom_collate_fn(fake_train_dataset):
 @pytest.fixture
 def fake_train_dataloader(fake_train_dataset):
     config, dataset = fake_train_dataset
+
+    assert config['kwargs']['batch_size'] % (config['kwargs']['n_references'] + 1) == 0
 
     dataloader = DataLoader(
         dataset=dataset,

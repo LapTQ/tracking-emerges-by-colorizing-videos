@@ -1,6 +1,7 @@
 from torch.utils.data import Dataset
 import numpy as np
 import cv2
+import torch
 from torchvision.transforms import ToTensor
 
 class CustomDataset(Dataset):
@@ -40,6 +41,9 @@ class CustomDataset(Dataset):
         gray = cv2.cvtColor(target_image, cv2.COLOR_BGR2GRAY)
         input_.append(ToTensor()(gray.copy()))
         label.append(ToTensor()(target_image.copy()))
+
+        input_ = torch.stack(input_, dim=0)
+        label = torch.stack(label, dim=0)
         
         return input_, label
 

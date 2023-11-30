@@ -1,7 +1,7 @@
 import importlib
 
 
-def load_dataset(
+def dataset_factory(
         **kwargs
 ):
     # parse kwargs

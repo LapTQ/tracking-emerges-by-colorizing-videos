@@ -12,6 +12,7 @@ RUN apt-get purge libopencv* && apt install libopencv* -y
 RUN apt install x11-apps -y
 RUN apt install wget -y
 RUN apt install nano -y
+RUN apt install git -y
 RUN apt-get install python3-tk -y
 
 # install pip

@@ -25,25 +25,29 @@ class CustomDataset(Dataset):
     
     def __getitem__(self, index):
         
+        brighten_step = 20
+        color = np.random.randint(0, 255 - brighten_step * self.n_references, size=(3,), dtype=np.uint8)
+        img = np.tile(color, self.imW * self.imH).reshape(self.imH, self.imW, 3)
+        
         reference_images = [
-            np.random.randint(0, 255, size=(self.imH, self.imW, 3), dtype=np.uint8)
+            (img + _ * brighten_step).astype(np.uint8)
             for _ in range(self.n_references)
         ]
-        target_image = np.random.randint(0, 255, size=(self.imH, self.imW, 3), dtype=np.uint8)
+        target_image = img + self.n_references * brighten_step
 
-        input_ = []
-        label = []
+        inputs = []
+        labels = []
         for frame in reference_images:
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            input_.append(ToTensor()(gray.copy()))
-            label.append(ToTensor()(frame.copy()))
+            inputs.append(ToTensor()(gray.copy()))
+            labels.append(ToTensor()(frame.copy()))
         
         gray = cv2.cvtColor(target_image, cv2.COLOR_BGR2GRAY)
-        input_.append(ToTensor()(gray.copy()))
-        label.append(ToTensor()(target_image.copy()))
+        inputs.append(ToTensor()(gray.copy()))
+        labels.append(ToTensor()(target_image.copy()))
 
-        input_ = torch.stack(input_, dim=0)
-        label = torch.stack(label, dim=0)
+        inputs = torch.stack(inputs, dim=0)
+        labels = torch.stack(labels, dim=0)
         
-        return input_, label
+        return inputs, labels
 

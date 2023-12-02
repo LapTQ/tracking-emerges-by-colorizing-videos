@@ -1,7 +1,7 @@
 import importlib
 
 
-def dataset_factory(
+def transform_factory(
         **kwargs
 ):
     # parse kwargs
@@ -10,6 +10,6 @@ def dataset_factory(
     module = importlib.import_module(
         name='{}.{}'.format(__name__, module_name)
     )
-    cls_ = getattr(module, 'CustomDataset')
+    cls_ = getattr(module, 'CustomTransform')
 
     return cls_

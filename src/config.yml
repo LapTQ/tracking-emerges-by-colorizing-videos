@@ -6,10 +6,37 @@ dataset:
     kwargs:
       dataset_dir: datasets/k700-2020
       n_references: 3
-      image_size: [256, 256]
       n_samples: 1024
       batch_size: 32
       shuffle: True
+
+transform:
+  train:
+    input:
+      - module_name: v2ToImage    # torchvision.transforms.v2.ToImage
+      - module_name: v2ToDtype    # torchvision.transforms.v2.ToDtype
+        kwargs:
+          dtype: torch.float32    # must be torch native dtype
+          scale: True
+      - module_name: v2Resize     # torchvision.transforms.v2.Resize
+        kwargs:
+          size: [256, 256]        # [height, width]
+          antialias: True
+      - module_name: v2Grayscale  # torchvision.transforms.v2.Grayscale
+    label:
+      - module_name: cv2Resize
+        kwargs:
+          size: [32, 32]        # [height, width]
+      - module_name: cv2cvtColor
+        kwargs:
+          code: cv2.COLOR_BGR2LAB
+      - module_name: ExtractChannel
+        kwargs:
+          channels: [1, 2]
+      - module_name: Quantize
+        kwargs:
+          n_colors: 16
+      - module_name: LabelEncoder
 
 logging:
   level: INFO

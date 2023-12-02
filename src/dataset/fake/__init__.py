@@ -12,11 +12,12 @@ class CustomDataset(Dataset):
     ):
         # parse kwargs
         self.n_references = kwargs['n_references']
-        self.image_size = kwargs['image_size']      # (W, H)
         self.n_samples = kwargs['n_samples']
+        self.input_transform = kwargs.get('input_transform', None)
+        self.label_transform = kwargs.get('label_transform', None)
 
-        self.imW = self.image_size[0]
-        self.imH = self.image_size[1]
+        self.imW = 512
+        self.imH = 512
 
 
     def __len__(self):
@@ -76,13 +77,16 @@ class CustomDataset(Dataset):
         inputs = []
         labels = []
         for frame in reference_images:
-            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            inputs.append(ToTensor()(gray.copy()))
-            labels.append(ToTensor()(frame.copy()))
+            inputs.append(frame)
+            labels.append(frame)
         
-        gray = cv2.cvtColor(target_image, cv2.COLOR_BGR2GRAY)
-        inputs.append(ToTensor()(gray.copy()))
-        labels.append(ToTensor()(target_image.copy()))
+        inputs.append(target_image)
+        labels.append(target_image)
+
+        if self.input_transform:
+            inputs = [self.input_transform(input_.copy()) for input_ in inputs]
+        if self.label_transform:
+            labels = [self.label_transform(label.copy()) for label in labels]
 
         inputs = torch.stack(inputs, dim=0)
         labels = torch.stack(labels, dim=0)

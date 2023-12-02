@@ -26,7 +26,7 @@ transform:
     label:
       - module_name: cv2Resize
         kwargs:
-          size: [32, 32]        # [height, width]
+          size: [32, 32]          # [height, width]
       - module_name: cv2cvtColor
         kwargs:
           code: cv2.COLOR_BGR2LAB

@@ -142,8 +142,8 @@ def test_custom_collate_fn(fake_train_dataset):
     batch = [dataset[i] for i in range(config_dataset['kwargs']['batch_size'] // (config_dataset['kwargs']['n_references'] + 1))]
     batch_X_collated, batch_Y_collated = custom_collate_fn(batch)
 
-    assert config_transform['input'][2]['module_name'] == 'Resize'
-    assert config_transform['label'][2]['module_name'] == 'Resize'
+    assert config_transform['input'][2]['module_name'] == 'v2Resize'
+    assert config_transform['label'][0]['module_name'] == 'cv2Resize'
 
     target_input_size = config_transform['input'][2]['kwargs']['size']
     target_label_size = config_transform['label'][2]['kwargs']['size']

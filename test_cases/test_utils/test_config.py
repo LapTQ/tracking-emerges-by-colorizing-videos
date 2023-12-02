@@ -28,10 +28,10 @@ def test_key():
         assert 'input' in train_transform
         assert 'label' in train_transform
 
-        assert train_transform['input'][0]['module_name'] == 'ToImage', \
+        assert train_transform['input'][0]['module_name'] == 'v2ToImage', \
             'Specific to the training input, ToImage and ToDtype must be the first, \
                 because other transformations expect a Tensor/TvTensor and with (C, H, W)'
-        assert train_transform['input'][1]['module_name'] == 'ToDtype', \
+        assert train_transform['input'][1]['module_name'] == 'v2ToDtype', \
             'Specific to the training input, ToImage and ToDtype must be the first, \
                 because other transformations expect a Tensor/TvTensor and with (C, H, W)'
 

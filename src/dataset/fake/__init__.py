@@ -88,6 +88,13 @@ class CustomDataset(Dataset):
         if self.label_transform:
             labels = [self.label_transform(label.copy()) for label in labels]
 
+        inputs = [torch.from_numpy(input_) if not isinstance(input_, torch.Tensor) \
+                  else input_ \
+                    for input_ in inputs]
+        labels = [torch.from_numpy(label_) if not isinstance(label_, torch.Tensor) \
+                    else label_ \
+                        for label_ in labels]
+
         inputs = torch.stack(inputs, dim=0)
         labels = torch.stack(labels, dim=0)
         

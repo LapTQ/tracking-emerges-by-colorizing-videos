@@ -11,6 +11,7 @@ sys.path.append(str(ROOT_DIR))
 from src.transform import transform_factory
 from src.dataset import dataset_factory
 from src.dataset.utils import custom_collate_fn
+import torch
 from torch.utils.data import DataLoader
 import torchvision.transforms.v2 as transforms
 import cv2
@@ -29,6 +30,13 @@ CONFIG_FAKE_DATASET = {
         'shuffle': True,
     }
 }
+SEED = 42
+
+
+def set_seed():
+    torch.manual_seed(SEED)
+    torch.cuda.manual_seed(SEED)
+    np.random.seed(SEED)
 
 
 def get_dataloader(
@@ -38,11 +46,18 @@ def get_dataloader(
     config_dataset = kwargs['config_dataset']
     config_label_transform = kwargs['config_transform']
 
-    label_transform = transform_factory(
-        module_name=config_label_transform['module_name'],
-    )(
-        **config_label_transform['kwargs']
+    label_transform = transforms.Compose(
+        [
+            transform_factory(
+                module_name=_['module_name'],
+            )(
+                **_['kwargs']
+            )
+            for _ in config_label_transform
+        ]
     )
+    
+    
 
     config_dataset['kwargs']['label_transform'] = label_transform
 
@@ -67,9 +82,10 @@ def visual_check(
 ):
     # parse kwargs
     batch_Y = kwargs['batch_Y']
+    window_title = kwargs.get('window_title', 'Sample labels in a batch (left to right, top to bottom). True [t] or False [f]?')
 
     tile = []
-    batch_Y = (batch_Y.numpy()).astype(np.uint8)
+    batch_Y = batch_Y.cpu().numpy().astype(np.uint8)
     
     for label in batch_Y:
         tile.append(label)
@@ -80,7 +96,6 @@ def visual_check(
         border_width=5
     )
     
-    window_title = 'Sample labels in a batch (left to right, top to bottom). True [t] or False [f]?'
     cv2.namedWindow(window_title, cv2.WINDOW_NORMAL)
     cv2.imshow(window_title, tile)
     key = cv2.waitKey(0)
@@ -89,14 +104,14 @@ def visual_check(
 
 
 def test_cv2Resize():
-    config_transform = {
-        'module_name': 'cv2Resize',
-        'kwargs': {
-            'size': (32, 64),
+    config_transform = [
+        {
+            'module_name': 'cv2Resize',
+            'kwargs': {
+                'size': (32, 64),
+            }
         }
-    }
-
-    
+    ]
 
     config_dataset = deepcopy(CONFIG_FAKE_DATASET)
 
@@ -105,12 +120,92 @@ def test_cv2Resize():
         config_transform=config_transform,
     )
 
+    set_seed()
     _, batch_Y = next(iter(dataloader))
     
-    assert batch_Y.shape[1:3] == config_transform['kwargs']['size']
+    assert batch_Y.shape[1:3] == config_transform[0]['kwargs']['size']
     
     key = visual_check(
         batch_Y=batch_Y,
+        window_title='Check cv2Resize transform with (H, W)={}. True [t] or False [f]?'.format(config_transform[0]['kwargs']['size']),
+    )
+    assert chr(key).lower().strip() == 't'
+
+
+def test_cvtColor():
+    config_transform = [
+        {
+            'module_name': 'cv2cvtColor',
+            'kwargs': {
+                'code': 'cv2.COLOR_BGR2LAB',
+            }
+        }
+    ]
+
+    config_dataset = deepcopy(CONFIG_FAKE_DATASET)
+
+    dataloader = get_dataloader(
+        config_dataset=config_dataset,
+        config_transform=config_transform,
+    )
+
+    set_seed()
+    _, batch_Y = next(iter(dataloader))
+        
+    key = visual_check(
+        batch_Y=batch_Y,
+        window_title='Check cv2cvtColor transform with code={}. True [t] or False [f]?'.format(config_transform[0]['kwargs']['code']),
+    )
+    assert chr(key).lower().strip() == 't'
+
+
+def test_ExtractChannel():
+    config_transform = [
+        {
+            'module_name': 'cv2cvtColor',
+            'kwargs': {
+                'code': 'cv2.COLOR_BGR2LAB',
+            }
+        },
+        {
+            'module_name': 'ExtractChannel',
+            'kwargs': {
+                'channels': [1, 2],
+            }
+        }
+    ]
+
+    config_dataset = deepcopy(CONFIG_FAKE_DATASET)
+
+    dataloader = get_dataloader(
+        config_dataset=config_dataset,
+        config_transform=config_transform,
+    )
+
+    set_seed()
+    _, batch_Y = next(iter(dataloader))
+
+    # add a dummy L channel and convert back to BGR for visual comparison
+    fixed_L = 200
+    batch_Y = torch.cat(
+        [
+            fixed_L + torch.zeros_like(batch_Y[:, :, :, :1]), 
+            batch_Y
+        ], 
+        dim=3
+    )
+    batch_Y = torch.stack(
+        [
+            torch.from_numpy(
+                cv2.cvtColor(y.numpy(), cv2.COLOR_LAB2BGR)
+            ) for y in batch_Y
+        ], 
+        dim=0
+    )
+        
+    key = visual_check(
+        batch_Y=batch_Y,
+        window_title='Check ExtractChannel transform with channels={}. True [t] or False [f]?'.format(config_transform[1]['kwargs']['channels']),
     )
     assert chr(key).lower().strip() == 't'
 

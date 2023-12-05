@@ -16,8 +16,8 @@ class CustomDataset(Dataset):
         self.input_transform = kwargs.get('input_transform', None)
         self.label_transform = kwargs.get('label_transform', None)
 
-        self.imW = 512
-        self.imH = 512
+        self.imW = 224
+        self.imH = 224
 
 
     def __len__(self):

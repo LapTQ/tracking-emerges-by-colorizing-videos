@@ -21,6 +21,12 @@ from datetime import datetime
 import numpy as np
 
 
+EXPECTED_INPUT_SHAPE = {
+    OneHotEncoder: (-1, 1),
+    LabelEncoder: (-1,),
+}
+
+
 class CustomTransform(nn.Module):
     """Custom transform to quantize data."""
 
@@ -43,7 +49,7 @@ class CustomTransform(nn.Module):
 
         self.encoder_cls = eval(self.encoder)
         self.encoder = self.encoder_cls()
-        self._expected_input_shape = (-1, 1) if self.encoder_cls == OneHotEncoder else (-1,)
+        self._expected_input_shape = EXPECTED_INPUT_SHAPE[self.encoder_cls]
 
         self._is_fitted = False
 
@@ -143,6 +149,8 @@ class CustomTransform(nn.Module):
             self,
             x
     ):
+        """Return the quantized value of the transformed data."""
+
         if not self._is_fitted:
             raise ValueError('Model is not fitted yet.')
         

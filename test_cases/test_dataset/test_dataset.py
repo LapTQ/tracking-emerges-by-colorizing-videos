@@ -76,11 +76,15 @@ def train_transforms():
         {
             'module_name': 'Quantize',
             'kwargs': {
-                'n_colors': 16
+                'model': {
+                    'module_name': 'KMeans',
+                    'kwargs': {
+                        'n_clusters': 3,
+                    },
+                },
+                'encoder': 'OneHotEncoder',
+                'checkpoint_path': None
             }
-        },
-        {
-            'module_name': 'LabelEncoder',
         }
     ]
 
@@ -172,6 +176,9 @@ def fake_train_dataloader(fake_train_dataset):
 
 def test_fake_dataloader(fake_train_dataloader):
     config_dataset, config_transform, _, dataloader = fake_train_dataloader
+
+    # assuming that Quantize is the last transform for convenience
+    assert config_transform['input'][-1]['module_name'] == 'Quantize'
 
     batch_X, batch_Y = next(iter(dataloader))
 

@@ -20,13 +20,14 @@ import numpy as np
 import imgviz
 import pytest
 from copy import deepcopy
+import os
 
 
 CONFIG_FAKE_DATASET = {
     'module_name': 'fake',
     'kwargs': {
         'n_references': 3,
-        'n_samples': 40,
+        'n_samples': 20,
         'batch_size': 32,
         'shuffle': True,
     }
@@ -47,6 +48,8 @@ def setup_data(
     config_dataset = kwargs['config_dataset']
     config_label_transform = kwargs['config_transform']
 
+    assert config_dataset['kwargs']['batch_size'] % (config_dataset['kwargs']['n_references'] + 1) == 0
+
     label_transform = transforms.Compose(
         [
             transform_factory(
@@ -57,8 +60,6 @@ def setup_data(
             for _ in config_label_transform
         ]
     )
-    
-    
 
     config_dataset['kwargs']['label_transform'] = label_transform
 
@@ -242,7 +243,7 @@ def Quantize_config_template():
                     }
                 },
                 'encoder': None,
-                'checkpoint': None,
+                'checkpoint_path': None,
             }
         }
     ]
@@ -262,9 +263,10 @@ def Quantize_config_template():
     return config_transform, Y
 
 
-def test_Quantize(Quantize_config_template):
+def test_Quantize_semantic(Quantize_config_template):
     config_transform, Y = Quantize_config_template
-    # assuming that Quantize is the last transform
+    
+    # assuming that Quantize is the last transform for convenience
     assert config_transform[-1]['module_name'] == 'Quantize'
 
     config_dataset = deepcopy(CONFIG_FAKE_DATASET)
@@ -333,6 +335,97 @@ def test_Quantize(Quantize_config_template):
         window_title='Check Quantize transform with n_clusters={}. True [t] or False [f]?'.format(config_transform[-1]['kwargs']['model']['kwargs']['n_clusters']),
     )
     assert chr(key).lower().strip() == 't'
+
+    cv2.destroyAllWindows()
+    
+
+def test_Quantize_checkpoint(Quantize_config_template):
+    config_transform, Y = Quantize_config_template
+    # assuming that Quantize is the last transform
+    assert config_transform[-1]['module_name'] == 'Quantize'
+
+    config_dataset = deepcopy(CONFIG_FAKE_DATASET)
+    config_transform[-1]['kwargs']['encoder'] = 'LabelEncoder'
+
+    # 1. check point path is file
+    checkpoint_path = 'checkpoints/transform/Quantize/test_case/checkpoint.pkl'
+    parent, filename = os.path.split(checkpoint_path)
+    os.system('rm -rf {}'.format(parent))
+
+    config_transform[-1]['kwargs']['checkpoint_path'] = checkpoint_path
+
+    label_transform, _ = setup_data(
+        config_dataset=config_dataset,
+        config_transform=config_transform,
+    )
+    quantize_transform = label_transform.transforms[-1]
+    
+    # 1.1. if parent directory does not exist, then both parent and file should only be created after fitting
+    assert not os.path.exists(parent)
+    quantize_transform.fit(Y)
+    assert os.path.exists(checkpoint_path)
+
+    # 1.2. if parent directory exists, but checkpoint file does not exist, then file should only be created after fitting
+    os.system('rm -rf {}'.format(checkpoint_path))
+    quantize_transform.fit(Y)
+    assert os.path.exists(checkpoint_path)
+
+    # 1.3. if checkpoint file exists, it should be overwritten
+    mtime = os.path.getmtime(checkpoint_path)
+    quantize_transform.fit(Y)
+    assert mtime < os.path.getmtime(checkpoint_path)
+
+    # 2. check point path is directory
+    checkpoint_path = 'checkpoints/transform/Quantize/test_case/'
+    os.system('rm -rf {}'.format(checkpoint_path))
+
+    config_transform[-1]['kwargs']['checkpoint_path'] = checkpoint_path
+
+    label_transform, _ = setup_data(
+        config_dataset=config_dataset,
+        config_transform=config_transform,
+    )
+    quantize_transform = label_transform.transforms[-1]
+
+    # 2.1. if directory does not exist, then it and a file should only be created after fitting
+    assert not os.path.exists(checkpoint_path)
+    quantize_transform.fit(Y)
+    assert os.path.exists(checkpoint_path)
+    assert len(os.listdir(checkpoint_path)) == 1
+
+    # 2.2. if directory exists, but checkpoint file does not exist, then file should only be created after fitting
+    os.system('rm -rf {}/*'.format(checkpoint_path))
+    quantize_transform.fit(Y)
+    assert len(os.listdir(checkpoint_path)) == 1
+
+    # 2.3. if a file exists, but the Quantize instance stays the same, then the file should be overwritten
+    quantize_transform.fit(Y)
+    assert len(os.listdir(checkpoint_path)) == 1
+
+    # 2.4. if a file exists, but the Quantize instance changes, then a new file should be created
+    label_transform, _ = setup_data(
+        config_dataset=config_dataset,
+        config_transform=config_transform,
+    )
+    quantize_transform = label_transform.transforms[-1]
+    quantize_transform.fit(Y)
+    assert len(os.listdir(checkpoint_path)) == 2
+
+    # 3. check point path is None
+    os.system('rm -rf {}'.format(checkpoint_path))
+    config_transform[-1]['kwargs']['checkpoint_path'] = None
+
+    label_transform, _ = setup_data(
+        config_dataset=config_dataset,
+        config_transform=config_transform,
+    )
+    quantize_transform = label_transform.transforms[-1]
+
+    quantize_transform.fit(Y)
+    assert not os.path.exists(checkpoint_path)
+
+
+    os.system('rm -rf {}'.format(checkpoint_path))
 
 
 if __name__ == '__main__':

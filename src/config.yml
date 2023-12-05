@@ -40,7 +40,7 @@ transform:
             kwargs:
               n_clusters: 16
           encoder: OneHotEncoder
-          checkpoint: checkpoints/transform/Quantize # path to checkpoint dir (get the latest) or a specific checkpoint file
+          checkpoint_path: checkpoints/transform/Quantize # path to checkpoint dir (get the latest) or a specific checkpoint file
           
 
 logging:

@@ -30,6 +30,7 @@ EXPECTED_INPUT_SHAPE = {
 class CustomTransform(nn.Module):
     """Custom transform to quantize data."""
 
+
     def __init__(
             self,
             **kwargs
@@ -39,7 +40,7 @@ class CustomTransform(nn.Module):
         # parse kwargs
         self.model = kwargs['model']
         self.encoder = kwargs['encoder']
-        self.checkpoint = kwargs.get('checkpoint', None)
+        self.checkpoint_path = kwargs.get('checkpoint_path', None)
 
         self.n_clusters = kwargs['model']['kwargs']['n_clusters']
         self.model_cls = eval(self.model['module_name'])
@@ -53,8 +54,9 @@ class CustomTransform(nn.Module):
 
         self._is_fitted = False
 
-        if self.checkpoint is not None:
-            self.load_checkpoint()
+        if self.checkpoint_path is not None:
+            self.checkpoint_path = self.checkpoint_path.strip()
+            self._load_checkpoint()
     
 
     def fit(self, X):
@@ -63,7 +65,10 @@ class CustomTransform(nn.Module):
         self.model.fit(X)
         self.encoder.fit(self.model.labels_.reshape(*self._expected_input_shape))
         self._is_fitted = True
-        LOGGER.info('Model {} fitted.'.format(self.model_cls))
+        LOGGER.info('Model {} and encoder {} fitted.'.format(self.model, self.encoder))
+
+        if self.checkpoint_path is not None:
+            self._save_checkpoint()
     
 
     def get_params(self):
@@ -73,23 +78,31 @@ class CustomTransform(nn.Module):
         }
 
     
-    def load_checkpoint(self):
-        if self.checkpoint is None:
+    def _load_checkpoint(self):
+        if self.checkpoint_path is None:
             raise ValueError('Checkpoint argument is set to None, so loading checkpoint is not allowed.')
         
-        if not os.path.exists(self.checkpoint):
-            raise FileNotFoundError('Path does not exist.')
+        if not os.path.exists(self.checkpoint_path):
+            LOGGER.warning('Checkpoint path was set but {} does not exist. Starting from scratch'.format(self.checkpoint_path))
+            return
 
-        if os.path.isdir(self.checkpoint):
-            filenames = [f for f in os.listdir(self.checkpoint) if f.endswith('.pkl')]
+        if os.path.isdir(self.checkpoint_path):
+            filenames = [f for f in os.listdir(self.checkpoint_path) if f.endswith('.pkl')]
             if len(filenames) == 0:
-                raise FileNotFoundError('No checkpoint file exists in the directory.')
+                LOGGER.warning('No checkpoint .pkl file exists in {}. Starting from scratch.'.format(self.checkpoint_path))
+                return
             last = sorted(filenames)[-1]
-            self.checkpoint = os.path.join(self.checkpoint, last)
-            LOGGER.info('Loading the last checkpoint for {} at {}'.format(self.model_cls, self.checkpoint))
+            LOGGER.warning('{} is a directory. So new checkpoint will be created after each fit.'.format(self.checkpoint_path))
+            
+            file_path = os.path.join(self.checkpoint_path, last)
+            LOGGER.info('Loading the last checkpoint for {} at {}'.format(str(self), file_path))
+        else:
+            assert self.checkpoint_path.endswith('.pkl'), 'Checkpoint path must be a .pkl file.'
+            LOGGER.warning('{} is a file. So it will be overwritten after each fit.'.format(self.checkpoint_path))
+            file_path = self.checkpoint_path
         
-        with open(self.checkpoint, 'rb') as f:
-            loaded_file = pickle.loads(f)
+        with open(file_path, 'rb') as f:
+            loaded_file = pickle.load(f)
         
         loaded_model = loaded_file['model']
         loaded_encoder = loaded_file['encoder']
@@ -100,24 +113,24 @@ class CustomTransform(nn.Module):
         self.encoder = loaded_encoder
 
     
-    def save_checkpoint(self):
+    def _save_checkpoint(self):
         if not self._is_fitted:
             raise ValueError('Model is not fitted yet.')
 
-        if self.checkpoint is None:
+        if self.checkpoint_path is None:
             raise ValueError('Checkpoint argument is set to None, so saving checkpoint is not allowed.')
         
         # check if the path is a directory or file
-        parent, filename = os.path.split(self.checkpoint)
+        parent, filename = os.path.split(self.checkpoint_path)
         is_dir = '.' not in filename
 
-        os.path.makedirs(parent, exist_ok=True)
+        os.makedirs(parent, exist_ok=True)
         if is_dir:
             filename = 'checkpoint_{}.pkl'.format(datetime.now().strftime('%Y%m%d_%H%M%S'))
-            self.checkpoint = os.path.join(parent, filename)
+            self.checkpoint_path = os.path.join(parent, filename)
         
-        with open(self.checkpoint, 'wb') as f:
-            pickle.dumps(
+        with open(self.checkpoint_path, 'wb') as f:
+            pickle.dump(
                 {
                     'model': self.model,
                     'encoder': self.encoder,
@@ -125,7 +138,7 @@ class CustomTransform(nn.Module):
                 f
             )
         
-        LOGGER.info('Checkpoint for {} saved to {}'.format(self.model_cls, self.checkpoint))
+        LOGGER.info('New checkpoint for {} is saved to {}'.format(str(self), self.checkpoint_path))
 
     
     def forward(
@@ -162,4 +175,8 @@ class CustomTransform(nn.Module):
         x = self.model.cluster_centers_[x]
         x = x.reshape(N, H, W, -1)
         return x
+
+
+    def __str__(self):
+        return 'Quantize'
         

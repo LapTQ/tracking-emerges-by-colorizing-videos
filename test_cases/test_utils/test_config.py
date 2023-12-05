@@ -6,9 +6,10 @@ ROOT_DIR = HERE.parent.parent
 
 sys.path.append(str(ROOT_DIR))
 
+import src as GLOBAL
+
 # ==================================================================================================
 
-import src as GLOBAL
 import json
 import pytest
 

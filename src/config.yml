@@ -35,8 +35,13 @@ transform:
           channels: [1, 2]
       - module_name: Quantize
         kwargs:
-          n_colors: 16
-      - module_name: LabelEncoder
+          model:
+            module_name: KMeans
+            kwargs:
+              n_clusters: 16
+          encoder: OneHotEncoder
+          checkpoint: checkpoints/transform/Quantize # path to checkpoint dir (get the latest) or a specific checkpoint file
+          
 
 logging:
   level: INFO
@@ -44,3 +49,4 @@ logging:
   handlers:
     file: logs   # directory to save log files
     stream: stdout
+  datetime_format: '%Y%m%d_%H%M%S'

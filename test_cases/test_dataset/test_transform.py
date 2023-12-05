@@ -6,11 +6,12 @@ ROOT_DIR = HERE.parent.parent
 
 sys.path.append(str(ROOT_DIR))
 
-# ==================================================================================================
-
 from src.transform import transform_factory
 from src.dataset import dataset_factory
 from src.dataset.utils import custom_collate_fn
+
+# ==================================================================================================
+
 import torch
 from torch.utils.data import DataLoader
 import torchvision.transforms.v2 as transforms
@@ -24,8 +25,8 @@ from copy import deepcopy
 CONFIG_FAKE_DATASET = {
     'module_name': 'fake',
     'kwargs': {
-        'n_references': 4,
-        'n_samples': 1024,
+        'n_references': 3,
+        'n_samples': 40,
         'batch_size': 32,
         'shuffle': True,
     }
@@ -39,7 +40,7 @@ def set_seed():
     np.random.seed(SEED)
 
 
-def get_dataloader(
+def setup_data(
         **kwargs
 ):
     # parse kwargs
@@ -74,7 +75,7 @@ def get_dataloader(
         collate_fn=custom_collate_fn,
     )
 
-    return dataloader
+    return label_transform, dataloader
 
 
 def visual_check(
@@ -115,7 +116,7 @@ def test_cv2Resize():
 
     config_dataset = deepcopy(CONFIG_FAKE_DATASET)
 
-    dataloader = get_dataloader(
+    _, dataloader = setup_data(
         config_dataset=config_dataset,
         config_transform=config_transform,
     )
@@ -144,7 +145,7 @@ def test_cvtColor():
 
     config_dataset = deepcopy(CONFIG_FAKE_DATASET)
 
-    dataloader = get_dataloader(
+    _, dataloader = setup_data(
         config_dataset=config_dataset,
         config_transform=config_transform,
     )
@@ -177,7 +178,7 @@ def test_ExtractChannel():
 
     config_dataset = deepcopy(CONFIG_FAKE_DATASET)
 
-    dataloader = get_dataloader(
+    _, dataloader = setup_data(
         config_dataset=config_dataset,
         config_transform=config_transform,
     )
@@ -206,6 +207,130 @@ def test_ExtractChannel():
     key = visual_check(
         batch_Y=batch_Y,
         window_title='Check ExtractChannel transform with channels={}. True [t] or False [f]?'.format(config_transform[1]['kwargs']['channels']),
+    )
+    assert chr(key).lower().strip() == 't'
+
+
+@pytest.fixture
+def Quantize_config_template():
+    config_transform = [
+        {
+            'module_name': 'cv2Resize',
+            'kwargs': {
+                'size': (32, 64),
+            }
+        },
+        {
+            'module_name': 'cv2cvtColor',
+            'kwargs': {
+                'code': 'cv2.COLOR_BGR2LAB',
+            }
+        },
+        {
+            'module_name': 'ExtractChannel',
+            'kwargs': {
+                'channels': [1, 2],
+            }
+        },
+        {
+            'module_name': 'Quantize',
+            'kwargs': {
+                'model': {
+                    'module_name': 'KMeans',
+                    'kwargs': {
+                        'n_clusters': 16,
+                    }
+                },
+                'encoder': None,
+                'checkpoint': None,
+            }
+        }
+    ]
+
+    config_dataset = deepcopy(CONFIG_FAKE_DATASET)
+    _, dataloader = setup_data(
+        config_dataset=config_dataset,
+        config_transform=config_transform[:-1],
+    )
+
+    Y = []
+    set_seed()
+    for _, batch_Y in dataloader:
+        Y.append(batch_Y)
+    Y = np.concatenate(Y, axis=0)
+
+    return config_transform, Y
+
+
+def test_Quantize(Quantize_config_template):
+    config_transform, Y = Quantize_config_template
+    # assuming that Quantize is the last transform
+    assert config_transform[-1]['module_name'] == 'Quantize'
+
+    config_dataset = deepcopy(CONFIG_FAKE_DATASET)
+
+    
+    # check LabelEncoder
+    config_transform[-1]['kwargs']['encoder'] = 'LabelEncoder'
+
+    label_transform, dataloader = setup_data(
+        config_dataset=config_dataset,
+        config_transform=config_transform,
+    )
+
+    quantize_transform = label_transform.transforms[-1]
+    quantize_transform.fit(Y)
+
+    set_seed()
+    _, batch_Y = next(iter(dataloader))
+
+    assert batch_Y.shape == (config_dataset['kwargs']['batch_size'], config_transform[0]['kwargs']['size'][0], config_transform[0]['kwargs']['size'][1], 1)
+    assert batch_Y.dtype == torch.int64
+    assert torch.all(batch_Y < quantize_transform.n_clusters)
+
+    
+    # check OneHotEncoder
+    config_transform[-1]['kwargs']['encoder'] = 'OneHotEncoder'
+
+    label_transform, dataloader = setup_data(
+        config_dataset=config_dataset,
+        config_transform=config_transform,
+    )
+
+    quantize_transform = label_transform.transforms[-1]
+    quantize_transform.fit(Y)
+
+    set_seed()
+    _, batch_Y = next(iter(dataloader))
+    assert batch_Y.shape == (config_dataset['kwargs']['batch_size'], config_transform[0]['kwargs']['size'][0], config_transform[0]['kwargs']['size'][1], quantize_transform.n_clusters)
+    assert batch_Y.dtype == torch.float64
+    assert torch.all(batch_Y < 2)
+
+
+    # visual check, given OneHotEncoder
+    batch_Y = quantize_transform.invert_transform_batch(batch_Y.cpu().numpy())
+    
+    # add a dummy L channel and convert back to BGR for visual comparison
+    fixed_L = 200
+    batch_Y = np.concatenate(
+        [
+            fixed_L + np.zeros_like(batch_Y[:, :, :, :1]), 
+            batch_Y
+        ], 
+        axis=3
+    ).astype(np.uint8)
+    batch_Y = torch.stack(
+        [
+            torch.from_numpy(
+                cv2.cvtColor(y, cv2.COLOR_LAB2BGR)
+            ) for y in batch_Y
+        ], 
+        dim=0
+    )
+        
+    key = visual_check(
+        batch_Y=batch_Y,
+        window_title='Check Quantize transform with n_clusters={}. True [t] or False [f]?'.format(config_transform[-1]['kwargs']['model']['kwargs']['n_clusters']),
     )
     assert chr(key).lower().strip() == 't'
 

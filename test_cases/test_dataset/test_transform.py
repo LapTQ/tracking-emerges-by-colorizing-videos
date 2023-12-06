@@ -286,7 +286,12 @@ def test_Quantize_semantic(Quantize_config_template):
     set_seed()
     _, batch_Y = next(iter(dataloader))
 
-    assert batch_Y.shape == (config_dataset['kwargs']['batch_size'], config_transform[0]['kwargs']['size'][0], config_transform[0]['kwargs']['size'][1], 1)
+    assert batch_Y.shape == (
+        config_dataset['kwargs']['batch_size'], 
+        config_transform[0]['kwargs']['size'][0], 
+        config_transform[0]['kwargs']['size'][1], 
+        1
+    )
     assert batch_Y.dtype == torch.int64
     assert torch.all(batch_Y < quantize_transform.n_clusters)
 
@@ -304,7 +309,12 @@ def test_Quantize_semantic(Quantize_config_template):
 
     set_seed()
     _, batch_Y = next(iter(dataloader))
-    assert batch_Y.shape == (config_dataset['kwargs']['batch_size'], config_transform[0]['kwargs']['size'][0], config_transform[0]['kwargs']['size'][1], quantize_transform.n_clusters)
+    assert batch_Y.shape == (
+        config_dataset['kwargs']['batch_size'], 
+        config_transform[0]['kwargs']['size'][0], 
+        config_transform[0]['kwargs']['size'][1], 
+        quantize_transform.n_clusters
+    )
     assert batch_Y.dtype == torch.float64
     assert torch.all(batch_Y < 2)
 

@@ -168,6 +168,9 @@ def test_dataset_output(
     config_dataset = deepcopy(config_dataset_template)
     config_transform = deepcopy(config_transform_template)
 
+    # get value for convenience
+    n_references = config_dataset['kwargs']['n_references']
+
     dataset, _, __ = setup_data(
         config_dataset=config_dataset,
         config_input_transform=config_transform['input'],
@@ -184,13 +187,13 @@ def test_dataset_output(
     extracted_channels = [extracted_channels] if isinstance(extracted_channels, int) else extracted_channels
 
     assert x.shape == (
-        config_dataset['kwargs']['n_references'] + 1,
+        n_references + 1,
         1, 
         target_input_size[0], 
         target_input_size[1]
     )
     assert y.shape == (
-        config_dataset['kwargs']['n_references'] + 1,
+        n_references + 1,
         target_label_size[0],
         target_label_size[1],
         len(extracted_channels)
@@ -204,13 +207,17 @@ def test_custom_collate_fn(
     config_dataset = deepcopy(config_dataset_template)
     config_transform = deepcopy(config_transform_template)
 
+    # get value for convenience
+    batch_size = config_dataset['kwargs']['batch_size']
+    n_references = config_dataset['kwargs']['n_references']
+
     dataset, _, __ = setup_data(
         config_dataset=config_dataset,
         config_input_transform=config_transform['input'],
         config_label_transform=config_transform['label'][:-1]   # ignore Quantize
     )
 
-    batch = [dataset[i] for i in range(config_dataset['kwargs']['batch_size'] // (config_dataset['kwargs']['n_references'] + 1))]
+    batch = [dataset[i] for i in range(batch_size // (n_references + 1))]
     batch_X_collated, batch_Y_collated = custom_collate_fn(batch)
 
     target_input_size = config_transform['input'][2]['kwargs']['size']
@@ -220,13 +227,13 @@ def test_custom_collate_fn(
     
     # check shapes
     assert batch_X_collated.shape == (
-        config_dataset['kwargs']['batch_size'], 
+        batch_size, 
         1, 
         target_input_size[0], 
         target_input_size[1]
     )
     assert batch_Y_collated.shape == (
-        config_dataset['kwargs']['batch_size'], 
+        batch_size, 
         target_label_size[0], 
         target_label_size[1],
         len(extracted_channels)
@@ -240,6 +247,11 @@ def test_dataloader_output(
     config_dataset = deepcopy(config_dataset_template)
     config_transform = deepcopy(config_transform_template)
 
+    # get value for convenience
+    batch_size = config_dataset['kwargs']['batch_size']
+    n_references = config_dataset['kwargs']['n_references']
+    shuffle = config_dataset['kwargs']['shuffle']
+
     # create dummy dataset to fit Quantize
     dummny_dataset, _, __ = setup_data(
         config_dataset=config_dataset,
@@ -248,8 +260,8 @@ def test_dataloader_output(
     )
     dummny_dataloader = DataLoader(
         dummny_dataset,
-        batch_size=config_dataset['kwargs']['batch_size'] // (config_dataset['kwargs']['n_references'] + 1),
-        shuffle=config_dataset['kwargs']['shuffle'],
+        batch_size=batch_size // (n_references + 1),
+        shuffle=shuffle,
         collate_fn=custom_collate_fn
     )
     Y = []
@@ -265,8 +277,8 @@ def test_dataloader_output(
     
     dataloader = DataLoader(
         dataset,
-        batch_size=config_dataset['kwargs']['batch_size'] // (config_dataset['kwargs']['n_references'] + 1),
-        shuffle=config_dataset['kwargs']['shuffle'],
+        batch_size=batch_size // (n_references + 1),
+        shuffle=shuffle,
         collate_fn=custom_collate_fn
     )
 
@@ -280,26 +292,28 @@ def test_dataloader_output(
     # check shapes
     target_input_size = config_transform['input'][2]['kwargs']['size']
     target_label_size = config_transform['label'][0]['kwargs']['size']
+    encoder_name = config_transform['label'][-1]['kwargs']['encoder']
+    n_clusters = config_transform['label'][-1]['kwargs']['model']['kwargs']['n_clusters']
     
     assert batch_X.shape == (
-        config_dataset['kwargs']['batch_size'], 
+        batch_size, 
         1, 
         target_input_size[0], 
         target_input_size[1]
     )
     assert batch_Y.shape == (
-        config_dataset['kwargs']['batch_size'],  
+        batch_size,  
         target_label_size[0], 
         target_label_size[1],
-        1 if config_transform['label'][-1]['kwargs']['encoder'] == 'LabelEncoder' else config_transform['label'][-1]['kwargs']['model']['kwargs']['n_clusters']
+        1 if encoder_name == 'LabelEncoder' else n_clusters
     )
     
 
     # check values
     assert batch_X.dtype == torch.float32
     assert 0 <= batch_X.min() <= batch_X.max() <= 1
-    assert batch_Y.dtype == (torch.float64 if config_transform['label'][-1]['kwargs']['encoder'] == 'OneHotEncoder' else torch.int64)
-    assert (0 <= batch_Y.min() <= batch_Y.max() <= 1) if config_transform['label'][-1]['kwargs']['encoder'] == 'OneHotEncoder' else torch.all(batch_Y.max() < config_transform['label'][-1]['kwargs']['model']['kwargs']['n_clusters'])
+    assert batch_Y.dtype == (torch.float64 if encoder_name == 'OneHotEncoder' else torch.int64)
+    assert (0 <= batch_Y.min() <= batch_Y.max() <= 1) if encoder_name == 'OneHotEncoder' else torch.all(batch_Y.max() < n_clusters)
 
 
     # visual check

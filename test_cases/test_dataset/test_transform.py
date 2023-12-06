@@ -48,7 +48,11 @@ def setup_data(
     config_dataset = kwargs['config_dataset']
     config_label_transform = kwargs['config_transform']
 
-    assert config_dataset['kwargs']['batch_size'] % (config_dataset['kwargs']['n_references'] + 1) == 0
+    # get value for convenience
+    batch_size = config_dataset['kwargs']['batch_size']
+    n_references = config_dataset['kwargs']['n_references']
+
+    assert batch_size % (n_references + 1) == 0
 
     label_transform = transforms.Compose(
         [
@@ -71,7 +75,7 @@ def setup_data(
 
     dataloader = DataLoader(
         dataset=dataset,
-        batch_size=config_dataset['kwargs']['batch_size'] // (config_dataset['kwargs']['n_references'] + 1),
+        batch_size=batch_size // (n_references + 1),
         shuffle=config_dataset['kwargs']['shuffle'],
         collate_fn=custom_collate_fn,
     )
@@ -271,6 +275,10 @@ def test_Quantize_semantic(Quantize_config_template):
 
     config_dataset = deepcopy(CONFIG_FAKE_DATASET)
 
+    # get value for convenience
+    batch_size = config_dataset['kwargs']['batch_size']
+    target_size = config_transform[0]['kwargs']['size']
+
     
     # check LabelEncoder
     config_transform[-1]['kwargs']['encoder'] = 'LabelEncoder'
@@ -287,9 +295,9 @@ def test_Quantize_semantic(Quantize_config_template):
     _, batch_Y = next(iter(dataloader))
 
     assert batch_Y.shape == (
-        config_dataset['kwargs']['batch_size'], 
-        config_transform[0]['kwargs']['size'][0], 
-        config_transform[0]['kwargs']['size'][1], 
+        batch_size, 
+        target_size[0], 
+        target_size[1], 
         1
     )
     assert batch_Y.dtype == torch.int64
@@ -310,9 +318,9 @@ def test_Quantize_semantic(Quantize_config_template):
     set_seed()
     _, batch_Y = next(iter(dataloader))
     assert batch_Y.shape == (
-        config_dataset['kwargs']['batch_size'], 
-        config_transform[0]['kwargs']['size'][0], 
-        config_transform[0]['kwargs']['size'][1], 
+        batch_size, 
+        target_size[0], 
+        target_size[1], 
         quantize_transform.n_clusters
     )
     assert batch_Y.dtype == torch.float64

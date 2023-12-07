@@ -158,7 +158,11 @@ def setup_data(
         **config_dataset.get('kwargs', {})
     )
 
-    return dataset, input_transform, label_transform
+    return {
+        'dataset': dataset, 
+        'input_transform': input_transform, 
+        'label_transform': label_transform
+    }
 
 
 def test_dataset_output(
@@ -171,11 +175,12 @@ def test_dataset_output(
     # get value for convenience
     n_references = config_dataset['kwargs']['n_references']
 
-    dataset, _, __ = setup_data(
+    _ = setup_data(
         config_dataset=config_dataset,
         config_input_transform=config_transform['input'],
         config_label_transform=config_transform['label'][:-1]   # ignore Quantize
     )
+    dataset = _['dataset']
 
     x, y = dataset[0]
     assert isinstance(x, torch.Tensor)
@@ -211,11 +216,12 @@ def test_custom_collate_fn(
     batch_size = config_dataset['kwargs']['batch_size']
     n_references = config_dataset['kwargs']['n_references']
 
-    dataset, _, __ = setup_data(
+    _ = setup_data(
         config_dataset=config_dataset,
         config_input_transform=config_transform['input'],
         config_label_transform=config_transform['label'][:-1]   # ignore Quantize
     )
+    dataset = _['dataset']
 
     batch = [dataset[i] for i in range(batch_size // (n_references + 1))]
     batch_X_collated, batch_Y_collated = custom_collate_fn(batch)
@@ -253,11 +259,12 @@ def test_dataloader_output(
     shuffle = config_dataset['kwargs']['shuffle']
 
     # create dummy dataset to fit Quantize
-    dummny_dataset, _, __ = setup_data(
+    _ = setup_data(
         config_dataset=config_dataset,
         config_input_transform=config_transform['input'],
         config_label_transform=config_transform['label'][:-1]   # ignore Quantize
     )
+    dummny_dataset = _['dataset']
     dummny_dataloader = DataLoader(
         dummny_dataset,
         batch_size=batch_size // (n_references + 1),
@@ -269,11 +276,13 @@ def test_dataloader_output(
         Y.append(batch_Y)
     dummy_Y = np.concatenate(Y, axis=0)
 
-    dataset, _, label_transform = setup_data(
+    _ = setup_data(
         config_dataset=config_dataset,
         config_input_transform=config_transform['input'],
         config_label_transform=config_transform['label']    # include Quantize
     )
+    dataset = _['dataset']
+    label_transform = _['label_transform']
     
     dataloader = DataLoader(
         dataset,

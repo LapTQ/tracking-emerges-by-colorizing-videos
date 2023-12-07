@@ -80,7 +80,10 @@ def setup_data(
         collate_fn=custom_collate_fn,
     )
 
-    return label_transform, dataloader
+    return {
+        'label_transform': label_transform,
+        'dataloader': dataloader,
+    }
 
 
 def visual_check(
@@ -121,10 +124,11 @@ def test_cv2Resize():
 
     config_dataset = deepcopy(CONFIG_FAKE_DATASET)
 
-    _, dataloader = setup_data(
+    _ = setup_data(
         config_dataset=config_dataset,
         config_transform=config_transform,
     )
+    dataloader = _['dataloader']
 
     set_seed()
     _, batch_Y = next(iter(dataloader))
@@ -150,10 +154,11 @@ def test_cvtColor():
 
     config_dataset = deepcopy(CONFIG_FAKE_DATASET)
 
-    _, dataloader = setup_data(
+    _ = setup_data(
         config_dataset=config_dataset,
         config_transform=config_transform,
     )
+    dataloader = _['dataloader']
 
     set_seed()
     _, batch_Y = next(iter(dataloader))
@@ -183,10 +188,11 @@ def test_ExtractChannel():
 
     config_dataset = deepcopy(CONFIG_FAKE_DATASET)
 
-    _, dataloader = setup_data(
+    _ = setup_data(
         config_dataset=config_dataset,
         config_transform=config_transform,
     )
+    dataloader = _['dataloader']
 
     set_seed()
     _, batch_Y = next(iter(dataloader))
@@ -253,10 +259,11 @@ def Quantize_config_template():
     ]
 
     config_dataset = deepcopy(CONFIG_FAKE_DATASET)
-    _, dataloader = setup_data(
+    _ = setup_data(
         config_dataset=config_dataset,
         config_transform=config_transform[:-1],
     )
+    dataloader = _['dataloader']
 
     Y = []
     set_seed()
@@ -283,10 +290,12 @@ def test_Quantize_semantic(Quantize_config_template):
     # check LabelEncoder
     config_transform[-1]['kwargs']['encoder'] = 'LabelEncoder'
 
-    label_transform, dataloader = setup_data(
+    _ = setup_data(
         config_dataset=config_dataset,
         config_transform=config_transform,
     )
+    dataloader = _['dataloader']
+    label_transform = _['label_transform']
 
     quantize_transform = label_transform.transforms[-1]
     quantize_transform.fit(Y)
@@ -307,10 +316,12 @@ def test_Quantize_semantic(Quantize_config_template):
     # check OneHotEncoder
     config_transform[-1]['kwargs']['encoder'] = 'OneHotEncoder'
 
-    label_transform, dataloader = setup_data(
+    _ = setup_data(
         config_dataset=config_dataset,
         config_transform=config_transform,
     )
+    dataloader = _['dataloader']
+    label_transform = _['label_transform']
 
     quantize_transform = label_transform.transforms[-1]
     quantize_transform.fit(Y)
@@ -372,10 +383,11 @@ def test_Quantize_checkpoint(Quantize_config_template):
 
     config_transform[-1]['kwargs']['checkpoint_path'] = checkpoint_path
 
-    label_transform, _ = setup_data(
+    _ = setup_data(
         config_dataset=config_dataset,
         config_transform=config_transform,
     )
+    label_transform = _['label_transform']
     quantize_transform = label_transform.transforms[-1]
     
     # 1.1. if parent directory does not exist, then both parent and file should only be created after fitting
@@ -399,10 +411,11 @@ def test_Quantize_checkpoint(Quantize_config_template):
 
     config_transform[-1]['kwargs']['checkpoint_path'] = checkpoint_path
 
-    label_transform, _ = setup_data(
+    _ = setup_data(
         config_dataset=config_dataset,
         config_transform=config_transform,
     )
+    label_transform = _['label_transform']
     quantize_transform = label_transform.transforms[-1]
 
     # 2.1. if directory does not exist, then it and a file should only be created after fitting
@@ -421,10 +434,11 @@ def test_Quantize_checkpoint(Quantize_config_template):
     assert len(os.listdir(checkpoint_path)) == 1
 
     # 2.4. if a file exists, but the Quantize instance changes, then a new file should be created
-    label_transform, _ = setup_data(
+    _ = setup_data(
         config_dataset=config_dataset,
         config_transform=config_transform,
     )
+    label_transform = _['label_transform']
     quantize_transform = label_transform.transforms[-1]
     quantize_transform.fit(Y)
     assert len(os.listdir(checkpoint_path)) == 2
@@ -433,10 +447,11 @@ def test_Quantize_checkpoint(Quantize_config_template):
     os.system('rm -rf {}'.format(checkpoint_path))
     config_transform[-1]['kwargs']['checkpoint_path'] = None
 
-    label_transform, _ = setup_data(
+    _ = setup_data(
         config_dataset=config_dataset,
         config_transform=config_transform,
     )
+    label_transform = _['label_transform']
     quantize_transform = label_transform.transforms[-1]
 
     quantize_transform.fit(Y)

@@ -22,6 +22,14 @@ LOGGER = GLOBAL.LOGGER
 
 def test_key():
 
+    if 'dataset' in GLOBAL.CONFIG:
+        assert 'train' in GLOBAL.CONFIG['dataset']
+        
+        train_dataset = GLOBAL.CONFIG['dataset']['train']
+        assert train_dataset['kwargs']['batch_size'] % (train_dataset['kwargs']['n_references'] + 1) == 0, \
+            'Batch size must be divisible by the number of references + 1'
+        
+
     if 'transform' in GLOBAL.CONFIG:
         assert 'train' in GLOBAL.CONFIG['transform']
 

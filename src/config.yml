@@ -6,9 +6,10 @@ dataset:
     kwargs:
       dataset_dir: datasets/k700-2020
       n_references: 3
-      n_samples: 1024
+      n_samples: 20
       batch_size: 32
       shuffle: True
+
 
 transform:
   train:

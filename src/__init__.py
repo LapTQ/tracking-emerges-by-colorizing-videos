@@ -9,9 +9,7 @@ CONFIG = load_config(
 )
 
 LOGGER = load_logger(
-    level=CONFIG['logging']['level'],
-    format=CONFIG['logging']['format'],
-    handlers=CONFIG['logging']['handlers']
+    **CONFIG['logging']
 )
      
 

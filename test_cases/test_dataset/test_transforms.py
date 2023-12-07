@@ -6,9 +6,9 @@ ROOT_DIR = HERE.parent.parent
 
 sys.path.append(str(ROOT_DIR))
 
-from src.transform import transform_factory
-from src.dataset import dataset_factory
-from src.dataset.utils import custom_collate_fn
+from src.transforms import transform_factory
+from src.datasets import dataset_factory
+from src.datasets.utils import custom_collate_fn
 
 # ==================================================================================================
 

@@ -4,7 +4,7 @@ dataset:
   train:
     module_name: fake
     kwargs:
-      dataset_dir: datasets/k700-2020
+      dataset_dir: data/k700-2020
       n_references: 3
       n_samples: 20
       batch_size: 32
@@ -14,20 +14,20 @@ dataset:
 transform:
   train:
     input:
-      - module_name: v2ToImage    # torchvision.transforms.v2.ToImage
-      - module_name: v2ToDtype    # torchvision.transforms.v2.ToDtype
+      - module_name: v2ToImage        # torchvision.transforms.v2.ToImage
+      - module_name: v2ToDtype        # torchvision.transforms.v2.ToDtype
         kwargs:
-          dtype: torch.float32    # must be torch native dtype
+          dtype: torch.float32        # must be torch native dtype
           scale: True
-      - module_name: v2Resize     # torchvision.transforms.v2.Resize
+      - module_name: v2Resize         # torchvision.transforms.v2.Resize
         kwargs:
-          size: [256, 256]        # [height, width]
+          size: [256, 256]            # [height, width]
           antialias: True
-      - module_name: v2Grayscale  # torchvision.transforms.v2.Grayscale
+      - module_name: v2Grayscale      # torchvision.transforms.v2.Grayscale
     label:
       - module_name: cv2Resize
         kwargs:
-          size: [32, 32]          # [height, width]
+          size: [32, 32]              # [height, width]
       - module_name: cv2cvtColor
         kwargs:
           code: cv2.COLOR_BGR2LAB
@@ -43,6 +43,24 @@ transform:
           encoder: OneHotEncoder
           checkpoint_path: checkpoints/transform/Quantize # path to checkpoint dir (get the latest) or a specific checkpoint file
           
+
+model:
+  backbone: resnet18
+  head: 3DConvs
+
+
+
+training:
+
+
+
+validation:
+
+
+
+predict:
+
+
 
 logging:
   level: INFO

@@ -2,7 +2,7 @@ from torch.utils.data import Dataset
 import numpy as np
 import cv2
 import torch
-from torchvision.transforms import ToTensor
+
 
 class CustomDataset(Dataset):
 

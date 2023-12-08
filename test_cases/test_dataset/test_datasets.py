@@ -7,15 +7,15 @@ ROOT_DIR = HERE.parent.parent
 sys.path.append(str(ROOT_DIR))
 
 import src as GLOBAL
-from src.datasets import dataset_factory
 from src.datasets.utils import custom_collate_fn
-from src.transforms import transform_factory
+from src.utils.dataset import setup_dataset, setup_dataset_and_transform
+from src.utils.mics import set_seed
 
 # ==================================================================================================
 
 import torch
 from torch.utils.data import DataLoader
-import torchvision.transforms.v2 as transforms
+import torchvision.transforms.v2 as T
 import pytest
 from copy import deepcopy
 import cv2
@@ -23,20 +23,13 @@ import imgviz
 import numpy as np
 
 
-DATASET_CONFIG = GLOBAL.CONFIG['dataset']
-TRANSFORM_CONFIG = GLOBAL.CONFIG['transform']
-SEED = 42
-
-
-def set_seed():
-    torch.manual_seed(SEED)
-    torch.cuda.manual_seed(SEED)
-    np.random.seed(SEED)
+CONFIG_DATASET = GLOBAL.CONFIG['dataset']
+CONFIG_TRANSFORM = GLOBAL.CONFIG['transform']
 
 
 @pytest.fixture
 def config_dataset_template():
-    config_dataset = deepcopy(DATASET_CONFIG['train'])
+    config_dataset = deepcopy(CONFIG_DATASET['train'])
 
     config_dataset['module_name'] = 'fake'
     config_dataset['kwargs']['n_references'] = 3
@@ -51,7 +44,7 @@ def config_dataset_template():
 
 @pytest.fixture
 def config_transform_template():
-    config_transform = deepcopy(TRANSFORM_CONFIG['train'])
+    config_transform = deepcopy(CONFIG_TRANSFORM['train'])
 
     config_transform['input'] = [
         {
@@ -119,52 +112,6 @@ def config_transform_template():
     return config_transform
 
 
-def setup_data(
-        **kwargs
-):
-    # parse kwargs
-    config_dataset = kwargs['config_dataset']
-    config_input_transform = kwargs['config_input_transform']
-    config_label_transform = kwargs['config_label_transform']
-
-    input_transform = transforms.Compose(
-        [
-            transform_factory(
-                module_name=_['module_name'],
-            )(
-                **_.get('kwargs', {})
-            )
-            for _ in config_input_transform
-        ]
-    )
-
-    label_transform = transforms.Compose(
-        [
-            transform_factory(
-                module_name=_['module_name'],
-            )(
-                **_.get('kwargs', {})
-            )
-            for _ in config_label_transform
-        ]
-    )
-
-    config_dataset['kwargs']['input_transform'] = input_transform
-    config_dataset['kwargs']['label_transform'] = label_transform
-
-    dataset = dataset_factory(
-        module_name=config_dataset['module_name'],
-    )(
-        **config_dataset.get('kwargs', {})
-    )
-
-    return {
-        'dataset': dataset, 
-        'input_transform': input_transform, 
-        'label_transform': label_transform
-    }
-
-
 def test_dataset_output(
         config_dataset_template,
         config_transform_template
@@ -175,10 +122,10 @@ def test_dataset_output(
     # get value for convenience
     n_references = config_dataset['kwargs']['n_references']
 
-    _ = setup_data(
+    _ = setup_dataset(
         config_dataset=config_dataset,
         config_input_transform=config_transform['input'],
-        config_label_transform=config_transform['label'][:-1]   # ignore Quantize
+        config_label_transform=config_transform['label'][:-1]   # exclude Quantize
     )
     dataset = _['dataset']
 
@@ -216,10 +163,10 @@ def test_custom_collate_fn(
     batch_size = config_dataset['kwargs']['batch_size']
     n_references = config_dataset['kwargs']['n_references']
 
-    _ = setup_data(
+    _ = setup_dataset(
         config_dataset=config_dataset,
         config_input_transform=config_transform['input'],
-        config_label_transform=config_transform['label'][:-1]   # ignore Quantize
+        config_label_transform=config_transform['label'][:-1]   # exclude Quantize
     )
     dataset = _['dataset']
 
@@ -255,44 +202,15 @@ def test_dataloader_output(
 
     # get value for convenience
     batch_size = config_dataset['kwargs']['batch_size']
-    n_references = config_dataset['kwargs']['n_references']
-    shuffle = config_dataset['kwargs']['shuffle']
 
     # create dummy dataset to fit Quantize
-    _ = setup_data(
+    set_seed()
+    _ = setup_dataset_and_transform(
         config_dataset=config_dataset,
         config_input_transform=config_transform['input'],
-        config_label_transform=config_transform['label'][:-1]   # ignore Quantize
+        config_label_transform=config_transform['label']
     )
-    dummny_dataset = _['dataset']
-    dummny_dataloader = DataLoader(
-        dummny_dataset,
-        batch_size=batch_size // (n_references + 1),
-        shuffle=shuffle,
-        collate_fn=custom_collate_fn
-    )
-    Y = []
-    for _, batch_Y in dummny_dataloader:
-        Y.append(batch_Y)
-    dummy_Y = np.concatenate(Y, axis=0)
-
-    _ = setup_data(
-        config_dataset=config_dataset,
-        config_input_transform=config_transform['input'],
-        config_label_transform=config_transform['label']    # include Quantize
-    )
-    dataset = _['dataset']
-    label_transform = _['label_transform']
-    
-    dataloader = DataLoader(
-        dataset,
-        batch_size=batch_size // (n_references + 1),
-        shuffle=shuffle,
-        collate_fn=custom_collate_fn
-    )
-
-    quantize_transform = label_transform.transforms[-1]
-    quantize_transform.fit(dummy_Y)
+    dataloader = _['dataloader']
 
     set_seed()
     batch_X, batch_Y = next(iter(dataloader))

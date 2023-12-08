@@ -33,7 +33,7 @@ def config_dataset_template():
 
     config_dataset['module_name'] = 'fake'
     config_dataset['kwargs']['n_references'] = 3
-    config_dataset['kwargs']['n_samples'] = 20
+    config_dataset['kwargs']['n_samples'] = 10
     config_dataset['kwargs']['batch_size'] = 32
     config_dataset['kwargs']['shuffle'] = True
 

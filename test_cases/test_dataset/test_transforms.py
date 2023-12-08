@@ -26,7 +26,7 @@ CONFIG_DATASET = {
     'module_name': 'fake',
     'kwargs': {
         'n_references': 3,
-        'n_samples': 20,
+        'n_samples': 10,
         'batch_size': 32,
         'shuffle': True,
     }
@@ -38,7 +38,9 @@ def visual_check(
 ):
     # parse kwargs
     batch_Y = kwargs['batch_Y']
-    window_title = kwargs.get('window_title', 'Sample labels in a batch (left to right, top to bottom). True [t] or False [f]?')
+    window_title = kwargs.get('window_title', 
+                'Sample labels in a batch (left to right, top to bottom). True [t] or False [f]?'
+    )
 
     tile = []
     batch_Y = batch_Y.cpu().numpy().astype(np.uint8)
@@ -85,7 +87,8 @@ def test_cv2Resize():
     
     key = visual_check(
         batch_Y=batch_Y,
-        window_title='Check cv2Resize transform with (H, W)={}. True [t] or False [f]?'.format(config_transform[0]['kwargs']['size']),
+        window_title='Check cv2Resize transform with (H, W)={}. True [t] or False [f]?'\
+            .format(config_transform[0]['kwargs']['size']),
     )
     assert chr(key).lower().strip() == 't'
 
@@ -114,12 +117,20 @@ def test_cvtColor():
         
     key = visual_check(
         batch_Y=batch_Y,
-        window_title='Check cv2cvtColor transform with code={}. True [t] or False [f]?'.format(config_transform[0]['kwargs']['code']),
+        window_title='Check cv2cvtColor transform with code={}. True [t] or False [f]?'\
+            .format(config_transform[0]['kwargs']['code']),
     )
     assert chr(key).lower().strip() == 't'
 
 
-@pytest.mark.parametrize('channels,expected_dim,show', [([1, 2], 2, True), ([0], 1, False), (0, 1, False)])
+@pytest.mark.parametrize(
+        'channels,expected_dim,show', 
+        [
+            ([1, 2], 2, True), 
+            ([0], 1, False), 
+            (0, 1, False)
+        ]
+)
 def test_ExtractChannel(channels, expected_dim, show):
     config_transform = [
         {
@@ -171,7 +182,8 @@ def test_ExtractChannel(channels, expected_dim, show):
             
         key = visual_check(
             batch_Y=batch_Y,
-            window_title='Check ExtractChannel transform with channels={}. True [t] or False [f]?'.format(config_transform[1]['kwargs']['channels']),
+            window_title='Check ExtractChannel transform with channels={}. True [t] or False [f]?'\
+                .format(config_transform[1]['kwargs']['channels']),
         )
         assert chr(key).lower().strip() == 't'
 
@@ -179,8 +191,8 @@ def test_ExtractChannel(channels, expected_dim, show):
 @pytest.mark.parametrize(
         'encoder_name,n_clusters,expected_dim,expected_dtype,expected_max_value,close_cv2', 
         [
-            ('LabelEncoder', 16, 1, torch.int64, 15, False), 
-            ('OneHotEncoder', 16, 16, torch.float64, 1, False),
+            ('LabelEncoder', 8, 1, torch.int64, 7, False), 
+            ('OneHotEncoder', 8, 8, torch.float64, 1, False),
             ('OneHotEncoder', 2, 2, torch.float64, 1, True)
         ]
 )
@@ -259,10 +271,11 @@ def test_Quantize_semantic(encoder_name, n_clusters, expected_dim, expected_dtyp
         
     key = visual_check(
         batch_Y=batch_Y,
-        window_title='Check Quantize transform with n_clusters={} and {}. True [t] or False [f]?'.format(
-            config_transform[-1]['kwargs']['model']['kwargs']['n_clusters'],
-            encoder_name
-        ),
+        window_title='Check Quantize transform with n_clusters={} and {}. True [t] or False [f]?'\
+            .format(
+                n_clusters,
+                encoder_name
+            ),
     )
     assert chr(key).lower().strip() == 't'
 
@@ -312,7 +325,7 @@ def test_Quantize_checkpoint():
                 'model': {
                     'module_name': 'KMeans',
                     'kwargs': {
-                        'n_clusters': 16,
+                        'n_clusters': 2,
                     }
                 },
                 'encoder': 'LabelEncoder',

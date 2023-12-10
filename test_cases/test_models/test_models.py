@@ -10,14 +10,15 @@ import src as GLOBAL
 
 from src.models import model_factory
 from src.utils.dataset import setup_dataset_and_transform
+from src.utils.mics import set_seed
 
 # ==================================================================================================
 
-from torch.utils.data import DataLoader
-import torchvision.transforms.v2 as T
+from torch import nn
 from copy import deepcopy
 import pytest
 import numpy as np
+from copy import deepcopy
 
 
 CONFIG_DATASET = GLOBAL.CONFIG['dataset']
@@ -26,11 +27,11 @@ CONFIG_TRANSFORM = GLOBAL.CONFIG['transform']
 
 @pytest.fixture
 def config_dataset_template():
-    config_dataset = deepcopy(CONFIG_DATASET)
+    config_dataset = deepcopy(CONFIG_DATASET['train'])
 
     config_dataset['module_name'] = 'fake'
     config_dataset['kwargs']['n_references'] = 3
-    config_dataset['kwargs']['n_samples'] = 20
+    config_dataset['kwargs']['n_samples'] = 10
     config_dataset['kwargs']['batch_size'] = 32
     config_dataset['kwargs']['shuffle'] = True
 
@@ -41,7 +42,7 @@ def config_dataset_template():
 
 @pytest.fixture
 def config_transform_template():
-    config_transform = deepcopy(CONFIG_TRANSFORM)
+    config_transform = deepcopy(CONFIG_TRANSFORM['train'])
 
     config_transform['input'] = [
         {
@@ -57,7 +58,7 @@ def config_transform_template():
         {
             'module_name': 'v2Resize',
             'kwargs': {
-                'size': (360, 640),
+                'size': (256, 256),
                 'antialias': True
             }
         },
@@ -70,7 +71,7 @@ def config_transform_template():
         {
             'module_name': 'cv2Resize',
             'kwargs': {
-                'size': (32, 64),
+                'size': (32, 32),
             }
         },
         {
@@ -107,6 +108,57 @@ def config_transform_template():
     assert config_transform['label'][-1]['module_name'] == 'Quantize'
 
     return config_transform
+
+
+def test_model_shape(
+        config_dataset_template,
+        config_transform_template
+):
+    config_model = {
+        'backbone': 'resnet18',
+        'head': 'convnet3d'
+    }
+
+    config_dataset = deepcopy(config_dataset_template)
+    config_transform = deepcopy(config_transform_template)
+
+    set_seed()
+    _ = setup_dataset_and_transform(
+        config_dataset=config_dataset,
+        config_input_transform=config_transform['input'],
+        config_label_transform=config_transform['label']
+    )
+    dataloader = _['dataloader']
+    n_references = config_dataset['kwargs']['n_references']
+
+    config_model['module_name'] = {
+        'backbone': config_model['backbone'],
+        'head': config_model['head']
+    }
+    config_model['kwargs'] = {
+        'backbone': {},
+        'head': {
+            'n_references': n_references
+        }
+    }
+
+    model = model_factory(
+        **config_model['module_name']
+    )(
+        **config_model.get('kwargs', {})
+    )
+
+    backbone = model.backbone
+    head = model.head
+    assert head.n_references == n_references
+
+
+if __name__ == '__main__':
+    pytest.main([__file__])
+
+    
+
+
 
 
 

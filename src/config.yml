@@ -46,7 +46,7 @@ transform:
 
 model:
   backbone: resnet18
-  head: 3DConvs
+  head: convnet3d
 
 
 

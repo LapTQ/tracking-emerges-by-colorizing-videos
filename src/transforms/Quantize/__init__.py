@@ -52,7 +52,7 @@ class CustomTransform(nn.Module):
         self.encoder = self.encoder_cls()
         self._expected_input_shape = EXPECTED_INPUT_SHAPE[self.encoder_cls]
 
-        self._is_fitted = False
+        self.is_fitted = False
 
         if self.checkpoint_path is not None:
             self.checkpoint_path = self.checkpoint_path.strip()
@@ -64,7 +64,7 @@ class CustomTransform(nn.Module):
         X = X.reshape(-1, X.shape[-1])
         self.model.fit(X)
         self.encoder.fit(self.model.labels_.reshape(*self._expected_input_shape))
-        self._is_fitted = True
+        self.is_fitted = True
         LOGGER.info('Model {} and encoder {} fitted.'.format(self.model, self.encoder))
 
         if self.checkpoint_path is not None:
@@ -111,10 +111,11 @@ class CustomTransform(nn.Module):
         assert isinstance(loaded_encoder, self.encoder_cls), 'Loaded encoder is not an instance of {}'.format(self.encoder_cls)
         self.model = loaded_model
         self.encoder = loaded_encoder
+        self.is_fitted = True
 
     
     def _save_checkpoint(self):
-        if not self._is_fitted:
+        if not self.is_fitted:
             raise ValueError('Model is not fitted yet.')
 
         if self.checkpoint_path is None:
@@ -145,7 +146,7 @@ class CustomTransform(nn.Module):
             self,
             x
     ):  
-        if not self._is_fitted:
+        if not self.is_fitted:
             raise ValueError('Model is not fitted yet.')
 
         H, W, C = x.shape
@@ -164,7 +165,7 @@ class CustomTransform(nn.Module):
     ):
         """Return the quantized value of the transformed data."""
 
-        if not self._is_fitted:
+        if not self.is_fitted:
             raise ValueError('Model is not fitted yet.')
         
         assert len(x.shape) == 4, 'Input shape must be (N, H, W, C).'

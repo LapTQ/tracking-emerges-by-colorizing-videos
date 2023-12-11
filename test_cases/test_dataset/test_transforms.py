@@ -373,6 +373,16 @@ def test_Quantize_checkpoint():
     quantize_transform.fit(Y)
     assert mtime < os.path.getmtime(checkpoint_path)
 
+    # 1.4. if checkpoint file exists, the Quantize object should be fitted after initialization
+    _ = setup_dataset(
+        config_dataset=config_dataset,
+        config_input_transform=None,
+        config_label_transform=config_transform,
+    )
+    label_transform = _['label_transform']
+    quantize_transform = label_transform.transforms[-1]
+    assert quantize_transform.is_fitted
+
     # 2. check point path is directory
     checkpoint_path = 'checkpoints/transform/Quantize/test_case/'
     os.system('rm -rf {}'.format(checkpoint_path))

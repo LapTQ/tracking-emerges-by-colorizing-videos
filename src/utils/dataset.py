@@ -95,46 +95,58 @@ def setup_dataset_and_transform(
     _ = setup_dataset(
         config_dataset=config_dataset,
         config_input_transform=config_input_transform,
-        config_label_transform=config_label_transform[:-1] \
-            if config_label_transform is not None else None    # exclude Quantize
+        config_label_transform=config_label_transform
     )
-    dummy_dataloader = _['dataloader']
-    input_transform = _['input_transform']  
+    dataset = _['dataset']
+    dataloader = _['dataloader']
+    input_transform = _['input_transform']
+    label_transform = _['label_transform']
     
-
-    Y = []
-    for _, batch_Y in dummy_dataloader:
-        Y.append(batch_Y)
-    dummy_Y = np.concatenate(Y, axis=0)
-
-
-    label_transform = T.Compose(
-        [
-            transform_factory(
-                module_name=_['module_name'],
-            )(
-                **_.get('kwargs', {})
-            )
-            for _ in config_label_transform   # include Quantize
-        ]
-    ) if config_label_transform is not None else None
     quantize_transform = label_transform.transforms[-1]
-    quantize_transform.fit(dummy_Y)
+    if not quantize_transform.is_fitted:
+        _ = setup_dataset(
+            config_dataset=config_dataset,
+            config_input_transform=config_input_transform,
+            config_label_transform=config_label_transform[:-1] \
+                if config_label_transform is not None else None    # exclude Quantize
+        )
+        dummy_dataloader = _['dataloader']
+        input_transform = _['input_transform']  
+        
 
-    config_dataset['kwargs']['label_transform'] = label_transform
+        Y = []
+        for _, batch_Y in dummy_dataloader:
+            Y.append(batch_Y)
+        dummy_Y = np.concatenate(Y, axis=0)
 
-    dataset = dataset_factory(
-        module_name=config_dataset['module_name'],
-    )(
-        **config_dataset.get('kwargs', {})
-    )
 
-    dataloader = DataLoader(
-        dataset,
-        batch_size=batch_size // (n_references + 1),
-        shuffle=shuffle,
-        collate_fn=custom_collate_fn
-    )
+        label_transform = T.Compose(
+            [
+                transform_factory(
+                    module_name=_['module_name'],
+                )(
+                    **_.get('kwargs', {})
+                )
+                for _ in config_label_transform   # include Quantize
+            ]
+        ) if config_label_transform is not None else None
+        quantize_transform = label_transform.transforms[-1]
+        quantize_transform.fit(dummy_Y)
+
+        config_dataset['kwargs']['label_transform'] = label_transform
+
+        dataset = dataset_factory(
+            module_name=config_dataset['module_name'],
+        )(
+            **config_dataset.get('kwargs', {})
+        )
+
+        dataloader = DataLoader(
+            dataset,
+            batch_size=batch_size // (n_references + 1),
+            shuffle=shuffle,
+            collate_fn=custom_collate_fn
+        )
 
     return {
         'dataset': dataset,

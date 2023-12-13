@@ -1,0 +1,8 @@
+- Automate visual testing
+- WanDB
+- Add type checking
+- CI/CD
+- Document code with sphinx
+- Intervene on the training process, such as modifying the learning rate, or change early stopping criteria
+- Fine tune model initialization such as He, BN, etc.
+- Study model scaling conventions

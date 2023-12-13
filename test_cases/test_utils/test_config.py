@@ -24,9 +24,12 @@ def test_key():
 
     if 'dataset' in GLOBAL.CONFIG:
         assert 'train' in GLOBAL.CONFIG['dataset']
+
+        config_train = GLOBAL.CONFIG['dataset']['train']
+        assert 'kwargs' in config_train
+        assert 'n_references' in config_train['kwargs']
         
-        train_dataset = GLOBAL.CONFIG['dataset']['train']
-        assert train_dataset['kwargs']['batch_size'] % (train_dataset['kwargs']['n_references'] + 1) == 0, \
+        assert config_train['kwargs']['batch_size'] % (config_train['kwargs']['n_references'] + 1) == 0, \
             'Batch size must be divisible by the number of references + 1'
         
 
@@ -43,6 +46,9 @@ def test_key():
         assert train_transform['input'][1]['module_name'] == 'v2ToDtype', \
             'Specific to the training input, ToImage and ToDtype must be the first, \
                 because other transformations expect a Tensor/TvTensor and with (C, H, W)'
+        
+    if 'model' in GLOBAL.CONFIG:
+        assert 'head' in GLOBAL.CONFIG['model']
 
 
 if __name__ == '__main__':

@@ -56,18 +56,18 @@ class CustomBackbone(nn.Module):
         super().__init__()
 
         # parse kwargs
-        stage_channels = kwargs.get('stage_channels', [64, 128, 256, 512])
-        stage_strides = kwargs.get('stage_strides', [1, 2, 2, 2])
+        mid_channels = kwargs.get('mid_channels', [64, 128, 256, 512])
+        mid_strides = kwargs.get('mid_strides', [1, 2, 2, 2])
 
         self.conv1 = nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
         self.bn1 = nn.BatchNorm2d(64)
         self.relu = nn.ReLU(inplace=True)
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
 
-        self.layer1 = self._make_layer(64, stage_channels[0], stage_strides[0])
-        self.layer2 = self._make_layer(stage_channels[0], stage_channels[1], stage_strides[1])
-        self.layer3 = self._make_layer(stage_channels[1], stage_channels[2], stage_strides[2])
-        self.layer4 = self._make_layer(stage_channels[2], stage_channels[3], stage_strides[3])
+        self.layer1 = self._make_layer(64, mid_channels[0], mid_strides[0])
+        self.layer2 = self._make_layer(mid_channels[0], mid_channels[1], mid_strides[1])
+        self.layer3 = self._make_layer(mid_channels[1], mid_channels[2], mid_strides[2])
+        self.layer4 = self._make_layer(mid_channels[2], mid_channels[3], mid_strides[3])
 
     
     def _make_layer(
@@ -97,12 +97,3 @@ class CustomBackbone(nn.Module):
         x = self.layer4(x)
 
         return x
-    
-
-if __name__ == '__main__':
-    from torchsummary import summary
-    model = CustomBackbone(
-        stage_channels=[64, 256, 256, 256],
-        stage_strides=[1, 2, 1, 1]
-    )
-    summary(model, (1, 256, 256))

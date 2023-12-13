@@ -118,8 +118,8 @@ def test_model_shape(
         'backbone': {
             'module_name': 'resnet18',
             'kwargs': {
-                'stage_channels': [64, 256, 256, 256],
-                'stage_strides': [1, 2, 1, 1]
+                'mid_channels': [64, 256, 256, 256],
+                'mid_strides': [1, 2, 1, 1]
             }
         },
         'head': {
@@ -130,6 +130,7 @@ def test_model_shape(
     config_dataset = deepcopy(config_dataset_template)
     config_transform = deepcopy(config_transform_template)
 
+    batch_size = config_dataset['kwargs']['batch_size']
     target_label_size = config_transform['label'][0]['kwargs']['size']
 
     set_seed()
@@ -148,7 +149,11 @@ def test_model_shape(
     config_model['kwargs'] = {
         'backbone': config_model['backbone']['kwargs'],
         'head': {
-            'n_references': n_references
+            'n_references': n_references,
+            'in_channels': config_model['backbone']['kwargs']['mid_channels'][-1],
+            'mid_channels': 256,
+            'out_channels': 64,
+            'dilations': [1, 2, 4, 8, 16]
         }
     }
 
@@ -167,12 +172,17 @@ def test_model_shape(
     head_output = head(backbone_output)
 
     assert backbone_output.shape == (
-        config_dataset['kwargs']['batch_size'],
+        batch_size,
         256,
         target_label_size[0],
         target_label_size[1]
     )
-
+    assert head_output.shape == (
+        batch_size,
+        config_model['kwargs']['head']['out_channels'],
+        target_label_size[0],
+        target_label_size[1]
+    )
 
 
 if __name__ == '__main__':

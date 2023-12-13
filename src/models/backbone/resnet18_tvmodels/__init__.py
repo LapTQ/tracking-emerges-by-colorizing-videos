@@ -23,9 +23,3 @@ class CustomBackbone(nn.Module):
         for layer in self.layers:
             x = layer(x)
         return x
-
-
-if __name__ == '__main__':
-    from torchsummary import summary
-    model = CustomBackbone()
-    summary(model, (3, 256, 256))

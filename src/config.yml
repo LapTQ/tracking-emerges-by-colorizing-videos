@@ -49,10 +49,16 @@ model:
   backbone:
     module_name: resnet18
     kwargs:
-      stage_channels: [64, 256, 256, 256]
-      stage_strides: [1, 2, 1, 1]
+      mid_channels: [64, 256, 256, 256]
+      mid_strides: [1, 2, 1, 1]
 
-  head: convnet3d
+  head:
+    module_name: convnet3d
+    kwargs:
+      mid_channels: 256
+      out_channels: 64
+      dilations: [1, 2, 4, 8, 16]
+
 
 
 

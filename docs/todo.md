@@ -1,4 +1,5 @@
 - Automate visual testing
+- Add spatial info to the head
 - WanDB
 - Add type checking
 - CI/CD

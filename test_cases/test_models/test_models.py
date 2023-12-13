@@ -115,12 +115,22 @@ def test_model_shape(
         config_transform_template
 ):
     config_model = {
-        'backbone': 'resnet18',
-        'head': 'convnet3d'
+        'backbone': {
+            'module_name': 'resnet18',
+            'kwargs': {
+                'stage_channels': [64, 256, 256, 256],
+                'stage_strides': [1, 2, 1, 1]
+            }
+        },
+        'head': {
+            'module_name': 'convnet3d'
+        }
     }
 
     config_dataset = deepcopy(config_dataset_template)
     config_transform = deepcopy(config_transform_template)
+
+    target_label_size = config_transform['label'][0]['kwargs']['size']
 
     set_seed()
     _ = setup_dataset_and_transform(
@@ -132,11 +142,11 @@ def test_model_shape(
     n_references = config_dataset['kwargs']['n_references']
 
     config_model['module_name'] = {
-        'backbone': config_model['backbone'],
-        'head': config_model['head']
+        'backbone': config_model['backbone']['module_name'],
+        'head': config_model['head']['module_name']
     }
     config_model['kwargs'] = {
-        'backbone': {},
+        'backbone': config_model['backbone']['kwargs'],
         'head': {
             'n_references': n_references
         }
@@ -151,6 +161,18 @@ def test_model_shape(
     backbone = model.backbone
     head = model.head
     assert head.n_references == n_references
+
+    X, Y = next(iter(dataloader))
+    backbone_output = backbone(X)
+    head_output = head(backbone_output)
+
+    assert backbone_output.shape == (
+        config_dataset['kwargs']['batch_size'],
+        256,
+        target_label_size[0],
+        target_label_size[1]
+    )
+
 
 
 if __name__ == '__main__':

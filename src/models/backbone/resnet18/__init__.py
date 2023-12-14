@@ -56,10 +56,11 @@ class CustomBackbone(nn.Module):
         super().__init__()
 
         # parse kwargs
+        in_channels = kwargs['in_channels']
         mid_channels = kwargs.get('mid_channels', [64, 128, 256, 512])
         mid_strides = kwargs.get('mid_strides', [1, 2, 2, 2])
 
-        self.conv1 = nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
+        self.conv1 = nn.Conv2d(in_channels, 64, kernel_size=7, stride=2, padding=3, bias=False)
         self.bn1 = nn.BatchNorm2d(64)
         self.relu = nn.ReLU(inplace=True)
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)

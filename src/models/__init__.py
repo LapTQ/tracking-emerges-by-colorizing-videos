@@ -4,6 +4,7 @@ from .backbone import backbone_factory
 from .head import head_factory
 
 
+
 def model_factory(
         **kwargs
 ):
@@ -63,10 +64,30 @@ class ColorizationModel(nn.Module):
                 **head_kwargs
             )
 
+            assert 'n_references' in head_kwargs
+            self._product.n_references = head_kwargs['n_references']
+
             product = self._product
             self.reset()
             return product
+        
+    
+    def simmat(
+            self,
+            x
+    ):
+        return x
+        
+    
+    def forward(
+            self,
+            x
+    ):
+        x = self.backbone(x)
+        x = self.head(x)
+        out = self.simmat(x)
 
+        return out
     
 
         

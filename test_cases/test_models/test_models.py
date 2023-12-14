@@ -14,6 +14,7 @@ from src.utils.mics import set_seed
 
 # ==================================================================================================
 
+import torch
 from torch import nn
 from copy import deepcopy
 import pytest
@@ -123,7 +124,12 @@ def test_model_shape(
             }
         },
         'head': {
-            'module_name': 'convnet3d'
+            'module_name': 'convnet3d',
+            'kwargs': {
+                'mid_channels': 256,
+                'out_channels': 64,
+                'dilations': [1, 2, 4, 8, 16]
+            }
         }
     }
 
@@ -142,20 +148,20 @@ def test_model_shape(
     dataloader = _['dataloader']
     n_references = config_dataset['kwargs']['n_references']
 
+    # reformat config_model
     config_model['module_name'] = {
         'backbone': config_model['backbone']['module_name'],
         'head': config_model['head']['module_name']
     }
     config_model['kwargs'] = {
         'backbone': config_model['backbone']['kwargs'],
-        'head': {
-            'n_references': n_references,
-            'in_channels': config_model['backbone']['kwargs']['mid_channels'][-1],
-            'mid_channels': 256,
-            'out_channels': 64,
-            'dilations': [1, 2, 4, 8, 16]
-        }
+        'head': config_model['head']['kwargs']
     }
+
+    # set model parameters to match the input
+    config_model['kwargs']['backbone']['in_channels'] = 1
+    config_model['kwargs']['head']['n_references'] = n_references
+    config_model['kwargs']['head']['in_channels'] = config_model['backbone']['kwargs']['mid_channels'][-1]
 
     model = model_factory(
         **config_model['module_name']
@@ -171,6 +177,7 @@ def test_model_shape(
     backbone_output = backbone(X)
     head_output = head(backbone_output)
 
+    # check shape
     assert backbone_output.shape == (
         batch_size,
         256,
@@ -183,6 +190,15 @@ def test_model_shape(
         target_label_size[0],
         target_label_size[1]
     )
+
+    # check gradient
+    Y_inter = torch.randn(batch_size, config_model['kwargs']['head']['out_channels'], target_label_size[0], target_label_size[1])
+    loss = nn.MSELoss()
+    l = loss(head_output, Y_inter)
+    l.backward()
+
+    for name, param in model.named_parameters():
+        assert (torch.abs(param.grad) > 1e-4).any(), 'No element of {} has gradient greater than 1e-4'.format(name)
 
 
 if __name__ == '__main__':

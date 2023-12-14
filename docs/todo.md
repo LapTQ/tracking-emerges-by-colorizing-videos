@@ -1,9 +1,12 @@
 - Automate visual testing
+- Fine tune model initialization such as He, BN, etc.
 - Add spatial info to the head
 - WanDB
+- Vision Transformer
+- Active learning, analyse scaling laws
+- Multi-loss
 - Add type checking
 - CI/CD
 - Document code with sphinx
 - Intervene on the training process, such as modifying the learning rate, or change early stopping criteria
-- Fine tune model initialization such as He, BN, etc.
 - Study model scaling conventions

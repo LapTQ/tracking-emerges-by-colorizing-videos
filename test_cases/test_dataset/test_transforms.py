@@ -26,7 +26,7 @@ CONFIG_DATASET = {
     'module_name': 'fake',
     'kwargs': {
         'n_references': 3,
-        'n_samples': 10,
+        'n_samples': 1024,
         'batch_size': 32,
         'shuffle': True,
     }
@@ -200,6 +200,12 @@ def test_Quantize_semantic(encoder_name, n_clusters, expected_dim, expected_dtyp
     config_dataset = deepcopy(CONFIG_DATASET)
     config_transform = [
         {
+            'module_name': 'cv2Resize',
+            'kwargs': {
+                'size': (32, 32),
+            }
+        },
+        {
             'module_name': 'cv2cvtColor',
             'kwargs': {
                 'code': 'cv2.COLOR_BGR2LAB',
@@ -214,6 +220,8 @@ def test_Quantize_semantic(encoder_name, n_clusters, expected_dim, expected_dtyp
         {
             'module_name': 'Quantize',
             'kwargs': {
+                'require_fit': True,
+                'n_fit': 96,
                 'model': {
                     'module_name': 'KMeans',
                     'kwargs': {
@@ -289,6 +297,7 @@ def get_fit_data(
     # parse kwargs
     config_dataset = kwargs['config_dataset']
     config_label_transform = kwargs['config_label_transform']
+    n_fit = kwargs['n_fit']
 
     _ = setup_dataset(
         config_dataset=config_dataset,
@@ -297,16 +306,24 @@ def get_fit_data(
     )
     dummy_dataloader = _['dataloader']
 
-    dummy_Y = []
-    for _, batch_Y in dummy_dataloader:
-        dummy_Y.append(batch_Y)
-    dummy_Y = np.concatenate(dummy_Y, axis=0)
+    Y_to_fit = []
+    batch_iter = iter(dummy_dataloader)
+    for _ in range(n_fit):
+        _, batch_Y = next(batch_iter)
+        Y_to_fit.append(batch_Y)
+    Y_to_fit = np.concatenate(Y_to_fit, axis=0)
 
-    return dummy_Y
+    return Y_to_fit
     
 
 def test_Quantize_checkpoint():
     config_transform = [
+        {
+            'module_name': 'cv2Resize',
+            'kwargs': {
+                'size': (32, 32),
+            }
+        },
         {
             'module_name': 'cv2cvtColor',
             'kwargs': {
@@ -322,6 +339,8 @@ def test_Quantize_checkpoint():
         {
             'module_name': 'Quantize',
             'kwargs': {
+                'require_fit': True,
+                'n_fit': 3,
                 'model': {
                     'module_name': 'KMeans',
                     'kwargs': {
@@ -338,9 +357,10 @@ def test_Quantize_checkpoint():
     assert config_transform[-1]['module_name'] == 'Quantize'
 
     config_dataset = deepcopy(CONFIG_DATASET)
-    Y = get_fit_data(
+    Y_to_fit = get_fit_data(
         config_dataset=config_dataset,
         config_label_transform=config_transform[:-1],   # exclude Quantize
+        n_fit=config_transform[-1]['kwargs']['n_fit']        
     )
 
     # 1. check point path is file
@@ -360,17 +380,17 @@ def test_Quantize_checkpoint():
     
     # 1.1. if parent directory does not exist, then both parent and file should only be created after fitting
     assert not os.path.exists(parent)
-    quantize_transform.fit(Y)
+    quantize_transform.fit(Y_to_fit)
     assert os.path.exists(checkpoint_path)
 
     # 1.2. if parent directory exists, but checkpoint file does not exist, then file should only be created after fitting
     os.system('rm -rf {}'.format(checkpoint_path))
-    quantize_transform.fit(Y)
+    quantize_transform.fit(Y_to_fit)
     assert os.path.exists(checkpoint_path)
 
     # 1.3. if checkpoint file exists, it should be overwritten
     mtime = os.path.getmtime(checkpoint_path)
-    quantize_transform.fit(Y)
+    quantize_transform.fit(Y_to_fit)
     assert mtime < os.path.getmtime(checkpoint_path)
 
     # 1.4. if checkpoint file exists, the Quantize object should be fitted after initialization
@@ -399,17 +419,17 @@ def test_Quantize_checkpoint():
 
     # 2.1. if directory does not exist, then it and a file should only be created after fitting
     assert not os.path.exists(checkpoint_path)
-    quantize_transform.fit(Y)
+    quantize_transform.fit(Y_to_fit)
     assert os.path.exists(checkpoint_path)
     assert len(os.listdir(checkpoint_path)) == 1
 
     # 2.2. if directory exists, but checkpoint file does not exist, then file should only be created after fitting
     os.system('rm -rf {}/*'.format(checkpoint_path))
-    quantize_transform.fit(Y)
+    quantize_transform.fit(Y_to_fit)
     assert len(os.listdir(checkpoint_path)) == 1
 
     # 2.3. if a file exists, but the Quantize instance stays the same, then the file should be overwritten
-    quantize_transform.fit(Y)
+    quantize_transform.fit(Y_to_fit)
     assert len(os.listdir(checkpoint_path)) == 1
 
     # 2.4. if a file exists, but the Quantize instance changes, then a new file should be created
@@ -420,7 +440,7 @@ def test_Quantize_checkpoint():
     )
     label_transform = _['label_transform']
     quantize_transform = label_transform.transforms[-1]
-    quantize_transform.fit(Y)
+    quantize_transform.fit(Y_to_fit)
     assert len(os.listdir(checkpoint_path)) == 2
 
     # 3. check point path is None
@@ -435,7 +455,7 @@ def test_Quantize_checkpoint():
     label_transform = _['label_transform']
     quantize_transform = label_transform.transforms[-1]
 
-    quantize_transform.fit(Y)
+    quantize_transform.fit(Y_to_fit)
     assert not os.path.exists(checkpoint_path)
 
 

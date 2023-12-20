@@ -60,7 +60,7 @@ class CustomTransform(nn.Module):
     
 
     def fit(self, X):
-        assert len(X.shape) == 4, 'Input shape must be (N, H, W, C).'
+        assert len(X.shape) == 4, 'Input shape must be (B, H, W, C).'
         X = X.reshape(-1, X.shape[-1])
         self.model.fit(X)
         self.encoder.fit(self.model.labels_.reshape(*self._expected_input_shape))

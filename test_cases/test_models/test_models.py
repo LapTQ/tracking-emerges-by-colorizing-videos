@@ -32,7 +32,7 @@ def config_dataset_template():
 
     config_dataset['module_name'] = 'fake'
     config_dataset['kwargs']['n_references'] = 3
-    config_dataset['kwargs']['n_samples'] = 10
+    config_dataset['kwargs']['n_samples'] = 1024
     config_dataset['kwargs']['batch_size'] = 32
     config_dataset['kwargs']['shuffle'] = True
 
@@ -90,6 +90,8 @@ def config_transform_template():
         {
             'module_name': 'Quantize',
             'kwargs': {
+                'require_fit': True,
+                'n_fit': 96,
                 'model': {
                     'module_name': 'KMeans',
                     'kwargs': {
@@ -99,6 +101,9 @@ def config_transform_template():
                 'encoder': 'OneHotEncoder',
                 'checkpoint_path': None
             }
+        },
+        {
+            'module_name': 'v2ToImage',
         }
     ]
 
@@ -106,7 +111,8 @@ def config_transform_template():
     assert config_transform['input'][2]['module_name'] == 'v2Resize'
     assert config_transform['label'][0]['module_name'] == 'cv2Resize'
     assert config_transform['label'][2]['module_name'] == 'ExtractChannel'
-    assert config_transform['label'][-1]['module_name'] == 'Quantize'
+    assert config_transform['label'][-2]['module_name'] == 'Quantize'
+    assert config_transform['label'][-1]['module_name'] == 'v2ToImage'
 
     return config_transform
 
@@ -192,7 +198,12 @@ def test_model_shape(
     )
 
     # check gradient
-    Y_inter = torch.randn(batch_size, config_model['kwargs']['head']['out_channels'], target_label_size[0], target_label_size[1])
+    Y_inter = torch.randn(
+        batch_size, 
+        config_model['kwargs']['head']['out_channels'], 
+        target_label_size[0], 
+        target_label_size[1]
+    )
     loss = nn.MSELoss()
     l = loss(head_output, Y_inter)
     l.backward()

@@ -6,7 +6,7 @@ dataset:
     kwargs:
       dataset_dir: data/k700-2020
       n_references: 3
-      n_samples: 10
+      n_samples: 1024
       batch_size: 32
       shuffle: True
       frame_rate: 6
@@ -37,12 +37,15 @@ transform:
           channels: [1, 2]
       - module_name: Quantize
         kwargs:
+          require_fit: True
+          n_fit: 10
           model:
             module_name: KMeans
             kwargs:
               n_clusters: 16
           encoder: OneHotEncoder
           checkpoint_path: checkpoints/transform/Quantize # path to checkpoint dir (get the latest) or a specific checkpoint file
+      - module_name: ToImage
           
 
 model:

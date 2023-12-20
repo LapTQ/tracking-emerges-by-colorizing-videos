@@ -33,7 +33,7 @@ def config_dataset_template():
 
     config_dataset['module_name'] = 'fake'
     config_dataset['kwargs']['n_references'] = 3
-    config_dataset['kwargs']['n_samples'] = 10
+    config_dataset['kwargs']['n_samples'] = 1024
     config_dataset['kwargs']['batch_size'] = 32
     config_dataset['kwargs']['shuffle'] = True
 
@@ -91,6 +91,8 @@ def config_transform_template():
         {
             'module_name': 'Quantize',
             'kwargs': {
+                'require_fit': True,
+                'n_fit': 96,
                 'model': {
                     'module_name': 'KMeans',
                     'kwargs': {
@@ -100,6 +102,9 @@ def config_transform_template():
                 'encoder': 'OneHotEncoder',
                 'checkpoint_path': None
             }
+        },
+        {
+            'module_name': 'v2ToImage',
         }
     ]
 
@@ -107,7 +112,7 @@ def config_transform_template():
     assert config_transform['input'][2]['module_name'] == 'v2Resize'
     assert config_transform['label'][0]['module_name'] == 'cv2Resize'
     assert config_transform['label'][2]['module_name'] == 'ExtractChannel'
-    assert config_transform['label'][-1]['module_name'] == 'Quantize'
+    assert config_transform['label'][3]['module_name'] == 'Quantize'
 
     return config_transform
 
@@ -125,7 +130,7 @@ def test_dataset_output(
     _ = setup_dataset(
         config_dataset=config_dataset,
         config_input_transform=config_transform['input'],
-        config_label_transform=config_transform['label'][:-1]   # exclude Quantize
+        config_label_transform=config_transform['label'][:3]   # exclude Quantize
     )
     dataset = _['dataset']
 
@@ -166,7 +171,7 @@ def test_custom_collate_fn(
     _ = setup_dataset(
         config_dataset=config_dataset,
         config_input_transform=config_transform['input'],
-        config_label_transform=config_transform['label'][:-1]   # exclude Quantize
+        config_label_transform=config_transform['label'][:3]   # exclude Quantize
     )
     dataset = _['dataset']
 
@@ -192,18 +197,29 @@ def test_custom_collate_fn(
         len(extracted_channels)
     )
 
-
+@pytest.mark.parametrize(
+        'encoder_name,n_clusters,expected_dim',
+        [
+            ('LabelEncoder', 16, 1),
+            ('OneHotEncoder', 16, 16)
+        ]
+)
 def test_dataloader_output(
         config_dataset_template,
-        config_transform_template
+        config_transform_template,
+        encoder_name,
+        n_clusters,
+        expected_dim
 ):
     config_dataset = deepcopy(config_dataset_template)
     config_transform = deepcopy(config_transform_template)
 
+    config_transform['label'][3]['kwargs']['encoder'] = encoder_name
+    config_transform['label'][3]['kwargs']['model']['kwargs']['n_clusters'] = n_clusters
+
     # get value for convenience
     batch_size = config_dataset['kwargs']['batch_size']
 
-    # create dummy dataset to fit Quantize
     set_seed()
     _ = setup_dataset_and_transform(
         config_dataset=config_dataset,
@@ -219,8 +235,7 @@ def test_dataloader_output(
     # check shapes
     target_input_size = config_transform['input'][2]['kwargs']['size']
     target_label_size = config_transform['label'][0]['kwargs']['size']
-    encoder_name = config_transform['label'][-1]['kwargs']['encoder']
-    n_clusters = config_transform['label'][-1]['kwargs']['model']['kwargs']['n_clusters']
+    encoder_name = config_transform['label'][3]['kwargs']['encoder']
     
     assert batch_X.shape == (
         batch_size, 
@@ -229,10 +244,10 @@ def test_dataloader_output(
         target_input_size[1]
     )
     assert batch_Y.shape == (
-        batch_size,  
+        batch_size,
+        expected_dim,
         target_label_size[0], 
         target_label_size[1],
-        1 if encoder_name == 'LabelEncoder' else n_clusters
     )
     
 

@@ -72,13 +72,6 @@ class ColorizationModel(nn.Module):
             return product
         
     
-    def simmat(
-            self,
-            x
-    ):
-        return x
-        
-    
     def forward(
             self,
             x
@@ -88,6 +81,13 @@ class ColorizationModel(nn.Module):
         out = self.simmat(x)
 
         return out
+    
+
+    def simmat(
+            self,
+            x
+    ):
+        return x
     
 
         

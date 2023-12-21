@@ -47,8 +47,18 @@ def test_key():
             'Specific to the training input, ToImage and ToDtype must be the first, \
                 because other transformations expect a Tensor/TvTensor and with (C, H, W)'
         
+        config_quantize = None
+        for _ in train_transform['label']:
+            if _['module_name'] == 'Quantize':
+                config_quantize = _
+                break
+        if config_quantize:
+            assert config_quantize['kwargs']['encoder'] == 'OneHotEncoder', \
+                'Quantize must be OneHot because the model expects it to be.'
+        
     if 'model' in GLOBAL.CONFIG:
         assert 'head' in GLOBAL.CONFIG['model']
+    
 
 
 if __name__ == '__main__':

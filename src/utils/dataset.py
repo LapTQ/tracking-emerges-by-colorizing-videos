@@ -117,8 +117,6 @@ def setup_dataset_and_transform(
     assert isinstance(config_input_transform, list) or config_input_transform is None
     assert isinstance(config_label_transform, list) or config_label_transform is None
 
-    print('>>>>>>>>>>>>>', config_dataset, config_input_transform, config_label_transform)
-
     batch_size = config_dataset['kwargs']['batch_size']
     n_references = config_dataset['kwargs']['n_references']
 
@@ -133,7 +131,6 @@ def setup_dataset_and_transform(
         )
         for cfg in (config_label_transform or [])
     ]
-    print('>>>>>>>>>>>>>', label_require_fits, label_n_sample_fits, label_n_batch_fits, ls_label_transform)
 
     for i, (require_fit, n_sample_fit, n_batch_fit, transform)  \
         in enumerate(zip(label_require_fits, label_n_batch_fits, label_n_batch_fits, ls_label_transform)):

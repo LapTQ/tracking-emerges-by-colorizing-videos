@@ -180,8 +180,12 @@ def test_model_shape(
     assert head.n_references == n_references
 
     X, Y = next(iter(dataloader))
+    true_color = Y[[i for i in range(batch_size) if i % (n_references + 1) == n_references]]
+    ref_colors = Y[[i for i in range(batch_size) if i % (n_references + 1) != n_references]]
     backbone_output = backbone(X)
     head_output = head(backbone_output)
+    ref_colors = ref_colors.float()
+    model_output = model(X, ref_colors)
 
     # check shape
     assert backbone_output.shape == (
@@ -196,16 +200,11 @@ def test_model_shape(
         target_label_size[0],
         target_label_size[1]
     )
+    assert model_output.shape == true_color.shape    
 
     # check gradient
-    Y_inter = torch.randn(
-        batch_size, 
-        config_model['kwargs']['head']['out_channels'], 
-        target_label_size[0], 
-        target_label_size[1]
-    )
-    loss = nn.MSELoss()
-    l = loss(head_output, Y_inter)
+    loss = nn.CrossEntropyLoss()
+    l = loss(model_output, true_color)
     l.backward()
 
     for name, param in model.named_parameters():

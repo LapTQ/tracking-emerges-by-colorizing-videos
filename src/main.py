@@ -26,6 +26,7 @@ from threading import Thread
 import numpy as np
 import cv2
 import imgviz
+import wandb
 
 
 def train():
@@ -152,6 +153,12 @@ def train():
     show_val_thread = Thread(target=_show_running_batch, args=(queue,))
     show_val_thread.start()
 
+    wandb.login(key=config_training['wandb_api_key'])
+    wandb.init(
+        project='Tracking emerges by colorizing videos',
+        config=config,
+    )
+
     for epoch in range(epochs):
 
         # training
@@ -176,9 +183,10 @@ def train():
             optimizer.step()
 
             running_loss += loss.item()
-            running_correct += torch.sum(
+            n_corrects = torch.sum(
                 torch.argmax(predicted_color, dim=1) == torch.argmax(true_color, dim=1)
             ).item()
+            running_correct += n_corrects
             if i % verbose_step == verbose_step - 1:
                 LOGGER.info('[Epoch {}/{}][Batch {}/{}] train loss: {}, train acc: {}'.format(
                     epoch + 1,
@@ -191,9 +199,14 @@ def train():
                 running_loss = 0.0
                 running_correct = 0
             total_train_loss += loss.item()
-            total_train_correct += torch.sum(
-                torch.argmax(predicted_color, dim=1) == torch.argmax(true_color, dim=1)
-            ).item()
+            total_train_correct += n_corrects
+
+            wandb.log(
+                {
+                    'train_loss': loss.item(),
+                    'train_acc': n_corrects / (H * W)
+                }
+            )
             
         total_train_loss /= len(train_dataloader)
         total_train_correct /= len(train_dataloader) * H * W
@@ -217,9 +230,10 @@ def train():
             loss = criterion(predicted_color, true_color)
 
             running_loss += loss.item()
-            running_correct += torch.sum(
+            n_corrects = torch.sum(
                 torch.argmax(predicted_color, dim=1) == torch.argmax(true_color, dim=1)
             ).item()
+            running_correct += n_corrects
             if i % verbose_step == verbose_step - 1:
                 LOGGER.info('[Epoch {}/{}][Batch {}/{}] val loss: {}, val acc: {}'.format(
                     epoch + 1,
@@ -232,9 +246,7 @@ def train():
                 running_loss = 0.0
                 running_correct = 0
             total_val_loss += loss.item()
-            total_val_correct += torch.sum(
-                torch.argmax(predicted_color, dim=1) == torch.argmax(true_color, dim=1)
-            ).item()
+            total_val_correct += n_corrects
 
             if queue.full():
                 queue.get()
@@ -243,6 +255,13 @@ def train():
                 'true_color': true_color,
                 'predicted_color': predicted_color
             })
+
+            wandb.log(
+                {
+                    'val_loss': loss.item(),
+                    'val_acc': n_corrects / (H * W)
+                }
+            )
         
         total_val_loss /= len(val_dataloader)
         total_val_correct /= len(val_dataloader) * H * W
@@ -261,6 +280,8 @@ def train():
             scheduler.step(total_val_loss)
     
     stop_show_running_batch = True
+    
+    wandb.finish()
 
 
 if __name__ == '__main__':

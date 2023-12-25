@@ -136,6 +136,7 @@ class CustomTransform(nn.Module):
             if filename == '':
                 self.checkpoint_path = os.path.join(parent, target_filename)
             else:
+                os.makedirs(self.checkpoint_path, exist_ok=True)
                 self.checkpoint_path = os.path.join(self.checkpoint_path, target_filename)
         
         with open(self.checkpoint_path, 'wb') as f:

@@ -1,4 +1,5 @@
 # paths in config.yml are either an absolute path or relative to the repo directory
+# path to checkpoint should be path to the parent dir (get the latest file inside) or a specific checkpoint file
 
 dataset:
   train:
@@ -6,10 +7,20 @@ dataset:
     kwargs:
       dataset_dir: data/k700-2020
       n_references: 3
-      n_samples: 1024
+      n_samples: 96
       batch_size: 32
       shuffle: True
       frame_rate: 6
+  val:
+    module_name: fake
+    kwargs:
+      dataset_dir: data/k700-2020
+      n_references: 3
+      n_samples: 16
+      batch_size: 32
+      shuffle: False
+      frame_rate: 6
+  predict:
 
 
 transform:
@@ -38,14 +49,14 @@ transform:
       - module_name: Quantize
         kwargs:
           require_fit: True
-          n_fit: 10
+          n_fit: 96
           model:
             module_name: KMeans
             kwargs:
               n_clusters: 16
           encoder: OneHotEncoder
-          checkpoint_path: checkpoints/transform/Quantize # path to checkpoint dir (get the latest) or a specific checkpoint file
-      - module_name: ToImage
+          checkpoint_path: checkpoints/transform/Quantize
+      - module_name: v2ToImage
           
 
 model:
@@ -61,21 +72,31 @@ model:
       mid_channels: 256
       out_channels: 64
       dilations: [1, 2, 4, 8, 16]
+  
+  checkpoint_path: checkpoints/model/Colorizer
 
 
 
 
 training:
-  loss:
-    module_name: CrossEntropyLoss
+  device: auto    # 'auto' or 'cuda:0' or 'cpu'
+  loss: CrossEntropyLoss
+  optimizer:
+    module_name: Adam
+    kwargs:
+      lr: 0.001
+  schedulers:
+    - module_name: ReduceLROnPlateau
+      kwargs:
+        mode: min
+        patience: 2
+        verbose: True
+  epochs: 15
+  verbose_step: 1
+  show_batch_queue_max_size: 3
 
-
-
-validation:
-
-
-
-predict:
+prediction:
+  device: cuda:0
 
 
 

@@ -25,6 +25,10 @@ EXPECTED_INPUT_SHAPE = {
     OneHotEncoder: (-1, 1),
     LabelEncoder: (-1,),
 }
+EXPECTED_CAT_ATTR = {
+    OneHotEncoder: 'categories_',
+    LabelEncoder: 'classes_',
+}
 
 
 class CustomTransform(nn.Module):
@@ -95,7 +99,7 @@ class CustomTransform(nn.Module):
             LOGGER.warning('{} is a directory. So new checkpoint will be created after each fit.'.format(self.checkpoint_path))
             
             file_path = os.path.join(self.checkpoint_path, last)
-            LOGGER.info('Loading the last checkpoint for {} at {}'.format(str(self), file_path))
+            LOGGER.info('Loading the last checkpoint at {}'.format(file_path))
         else:
             assert self.checkpoint_path.endswith('.pkl'), 'Checkpoint path must be a .pkl file.'
             LOGGER.warning('{} is a file. So it will be overwritten after each fit.'.format(self.checkpoint_path))
@@ -112,6 +116,7 @@ class CustomTransform(nn.Module):
         self.model = loaded_model
         self.encoder = loaded_encoder
         self.is_fitted = True
+        LOGGER.info('Quantize model loaded successfully:\n{}'.format(str(self)))
 
     
     def _save_checkpoint(self):
@@ -123,12 +128,15 @@ class CustomTransform(nn.Module):
         
         # check if the path is a directory or file
         parent, filename = os.path.split(self.checkpoint_path)
-        is_dir = '.' not in filename
+        is_dir = '.' not in filename or filename == ''
 
         os.makedirs(parent, exist_ok=True)
         if is_dir:
-            filename = 'checkpoint_{}.pkl'.format(datetime.now().strftime('%Y%m%d_%H%M%S'))
-            self.checkpoint_path = os.path.join(parent, filename)
+            target_filename = 'checkpoint_{}.pkl'.format(datetime.now().strftime('%Y%m%d_%H%M%S'))
+            if filename == '':
+                self.checkpoint_path = os.path.join(parent, target_filename)
+            else:
+                self.checkpoint_path = os.path.join(self.checkpoint_path, target_filename)
         
         with open(self.checkpoint_path, 'wb') as f:
             pickle.dump(
@@ -179,5 +187,17 @@ class CustomTransform(nn.Module):
 
 
     def __str__(self):
-        return 'Quantize'
+        return 'Quantize(\n\
+    model: {}(\n\
+        cluster_centers_: {}\n\
+    ),\n\
+    encoder: {}(\n\
+        categories_: {}\n\
+    ),\n\
+)'.format(
+    self.model_cls,
+    self.model.cluster_centers_,
+    self.encoder_cls,
+    eval('self.encoder.{}'.format(EXPECTED_CAT_ATTR[self.encoder_cls])),
+)
         

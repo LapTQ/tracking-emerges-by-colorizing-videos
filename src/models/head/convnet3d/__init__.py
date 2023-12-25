@@ -1,5 +1,5 @@
-import torch
 from torch import nn
+import torch.nn.functional as F
 
 
 class BasicBlock(nn.Module):
@@ -15,7 +15,6 @@ class BasicBlock(nn.Module):
 
         self.conv1 = nn.Conv3d(in_channels, out_channels, kernel_size=(1, 3, 3), padding=(0, dilation, dilation), dilation=(1, dilation, dilation), bias=False)
         self.bn1 = nn.BatchNorm3d(out_channels)
-        self.relu = nn.ReLU(inplace=True)
         self.conv2 = nn.Conv3d(out_channels, out_channels, kernel_size=(3, 1, 1), padding=(1, 0, 0), bias=False)
         self.bn2 = nn.BatchNorm3d(out_channels)
     
@@ -26,10 +25,10 @@ class BasicBlock(nn.Module):
     ):
         x = self.conv1(x)
         x = self.bn1(x)
-        x = self.relu(x)
+        x = F.relu(x)
         x = self.conv2(x)
         x = self.bn2(x)
-        x = self.relu(x)
+        x = F.relu(x)
 
         return x
 

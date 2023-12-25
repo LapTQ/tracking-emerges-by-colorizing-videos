@@ -1,5 +1,6 @@
 import torch
 from torch import nn
+import torch.nn.functional as F
 from .backbone import backbone_factory
 from .head import head_factory
 
@@ -11,14 +12,14 @@ def model_factory(
     # parse kwargs
     module_name = kwargs
 
-    model_builder = ColorizationModel.Builder(
+    model_builder = Colorizer.Builder(
         **module_name
     )
 
     return model_builder
 
 
-class ColorizationModel(nn.Module):
+class Colorizer(nn.Module):
 
     class Builder:
 
@@ -35,7 +36,7 @@ class ColorizationModel(nn.Module):
         def reset(
                 self,
         ):
-            self._product = ColorizationModel()
+            self._product = Colorizer()
         
 
         def __call__(
@@ -108,6 +109,7 @@ class ColorizationModel(nn.Module):
 
         tar = tar.view(B, C, H * W)
         sim = torch.matmul(ref, tar)
+        sim = F.softmax(sim, dim=1)
 
         return sim
     

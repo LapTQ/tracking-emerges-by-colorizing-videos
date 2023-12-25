@@ -191,8 +191,8 @@ def test_ExtractChannel(channels, expected_dim, show):
 @pytest.mark.parametrize(
         'encoder_name,n_clusters,expected_dim,expected_dtype,expected_max_value,close_cv2', 
         [
-            ('LabelEncoder', 8, 1, torch.int64, 7, False), 
-            ('OneHotEncoder', 8, 8, torch.float64, 1, False),
+            ('LabelEncoder', 16, 1, torch.int64, 15, False), 
+            ('OneHotEncoder', 16, 16, torch.float64, 1, False),
             ('OneHotEncoder', 2, 2, torch.float64, 1, True)
         ]
 )

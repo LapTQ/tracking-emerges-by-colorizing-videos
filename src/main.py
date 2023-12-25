@@ -18,7 +18,7 @@ from copy import deepcopy
 import torch
 import torch.nn.functional as F
 from torch.nn import CrossEntropyLoss
-from torch.optim import Adam
+from torch.optim import Adam, SGD
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from queue import Queue
 from time import sleep
@@ -99,7 +99,7 @@ def train():
         project='Tracking emerges by colorizing videos',
         config=config,
     )
-    wandb.watch(model, log_freq=1)
+    wandb.watch(model, log_freq=1, log='all')
 
     queue = Queue(maxsize=config_training['show_batch_queue_max_size'])
     stop_show_running_batch = False

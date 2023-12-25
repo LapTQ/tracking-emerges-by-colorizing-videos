@@ -82,9 +82,11 @@ training:
   device: auto    # 'auto' or 'cuda:0' or 'cpu'
   loss: CrossEntropyLoss
   optimizer:
-    module_name: Adam
+    module_name: SGD
     kwargs:
       lr: 0.001
+      momentum: 0.9
+      nesterov: True
   schedulers:
     - module_name: ReduceLROnPlateau
       kwargs:

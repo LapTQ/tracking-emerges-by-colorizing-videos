@@ -94,18 +94,31 @@ def train():
     epochs = config_training['epochs']
     verbose_step = config_training['verbose_step']
 
+    wandb.login(key=config_training['wandb_api_key'])
+    wandb.init(
+        project='Tracking emerges by colorizing videos',
+        config=config,
+    )
+
     queue = Queue(maxsize=config_training['show_batch_queue_max_size'])
     stop_show_running_batch = False
     def _show_running_batch(in_queue):
         assert config_transform['label'][-2]['module_name'] == 'Quantize', \
             'Assuming the second last label transform to be Quantize.'
         quantize_transform = label_transform.transforms[-2]
+
+        table = wandb.Table(
+            columns=['epoch', 'batch', 'true_color', 'predicted_color'],
+        )
+
         while not stop_show_running_batch:
             if in_queue.empty():
                 sleep(0.1)
                 continue
 
             _ = in_queue.get()
+            epoch = _['epoch']
+            b_idx = _['b_idx']
             X = _['X']
             true_color = _['true_color']
             predicted_color = _['predicted_color']  # (B, C, H, W)
@@ -147,17 +160,21 @@ def train():
             # key = cv2.waitKey(1)
             # if key == ord('q'):
             #     exit(0)
+
+            for i in range(len(tile) / 2):
+                table.add_data(
+                    epoch,
+                    b_idx,
+                    wandb.Image(tile[2*i]),
+                    wandb.Image(tile[2*i+1])
+                )
+
+                    
         
         cv2.destroyAllWindows()
 
     show_val_thread = Thread(target=_show_running_batch, args=(queue,))
     show_val_thread.start()
-
-    wandb.login(key=config_training['wandb_api_key'])
-    wandb.init(
-        project='Tracking emerges by colorizing videos',
-        config=config,
-    )
 
     for epoch in range(epochs):
 
@@ -167,7 +184,7 @@ def train():
         total_train_loss = 0.0
         total_train_correct = 0
         model.train()
-        for i, batch in enumerate(train_dataloader):
+        for b_idx, batch in enumerate(train_dataloader):
             X, Y = batch
             X = X.to(device)
             Y = Y.to(device)
@@ -187,11 +204,11 @@ def train():
                 torch.argmax(predicted_color, dim=1) == torch.argmax(true_color, dim=1)
             ).item()
             running_correct += n_corrects
-            if i % verbose_step == verbose_step - 1:
+            if b_idx % verbose_step == verbose_step - 1:
                 LOGGER.info('[Epoch {}/{}][Batch {}/{}] train loss: {}, train acc: {}'.format(
                     epoch + 1,
                     epochs,
-                    i + 1,
+                    b_idx + 1,
                     len(train_dataloader),
                     running_loss / verbose_step,
                     running_correct / (verbose_step * H * W)
@@ -217,7 +234,7 @@ def train():
         total_val_loss = 0.0
         total_val_correct = 0
         model.eval()
-        for i, batch in enumerate(val_dataloader):
+        for b_idx, batch in enumerate(val_dataloader):
             X, Y = batch
             X = X.to(device)
             Y = Y.to(device)
@@ -234,11 +251,11 @@ def train():
                 torch.argmax(predicted_color, dim=1) == torch.argmax(true_color, dim=1)
             ).item()
             running_correct += n_corrects
-            if i % verbose_step == verbose_step - 1:
+            if b_idx % verbose_step == verbose_step - 1:
                 LOGGER.info('[Epoch {}/{}][Batch {}/{}] val loss: {}, val acc: {}'.format(
                     epoch + 1,
                     epochs,
-                    i + 1,
+                    b_idx + 1,
                     len(val_dataloader),
                     running_loss / verbose_step,
                     running_correct / (verbose_step * H * W)
@@ -251,6 +268,8 @@ def train():
             if queue.full():
                 queue.get()
             queue.put({
+                'epoch': epoch,
+                'b_idx': b_idx,
                 'X': X,
                 'true_color': true_color,
                 'predicted_color': predicted_color

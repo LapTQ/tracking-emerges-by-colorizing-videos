@@ -94,7 +94,7 @@ class Colorizer(nn.Module):
         Args:
             x (torch.Tensor): Backbone output of shape (B, C, H, W), where B % (n_references + 1) == 0.
         Returns:
-            sim (torch.Tensor): Similarity matrix of shape (B, H*W*3, H*W).
+            sim (torch.Tensor): Similarity matrix of shape (B / (n_references + 1), n_references*H*W, H*W).
         """
         B, C, H, W = x.shape
         assert B % (self.n_references + 1) == 0
@@ -102,14 +102,13 @@ class Colorizer(nn.Module):
         tar = x[[i for i in range(B) if i % (self.n_references + 1) == self.n_references]]
         B = B // (self.n_references + 1)
 
-        ref = ref.view(B, self.n_references, C, H, W)
-        ref = ref.permute(0, 2, 1, 3, 4).contiguous()
-        ref = ref.view(B, C, self.n_references * H * W)
+        ref = ref.reshape(B, self.n_references, C, H, W)
+        ref = ref.permute(0, 2, 1, 3, 4)
+        ref = ref.reshape(B, C, self.n_references * H * W)
         ref = ref.transpose(1, 2)
 
         tar = tar.view(B, C, H * W)
         sim = torch.matmul(ref, tar)
-        sim = F.softmax(sim, dim=1)
 
         return sim
     
@@ -121,7 +120,7 @@ class Colorizer(nn.Module):
     ):
         """Predict color distribution from similarity matrix and reference colors.
         Args:
-            sim (torch.Tensor): Similarity matrix of shape (B1, H*W*3, H*W).
+            sim (torch.Tensor): Similarity matrix of shape (B1, n_references*H*W, H*W).
             y (torch.Tensor): Reference colors of shape (B2, C, H, W), where B2 = B1 * n_references.
         Returns:
             out (torch.Tensor): Color distribution of shape (B1, C, H, W).
@@ -131,9 +130,9 @@ class Colorizer(nn.Module):
         assert B % self.n_references == 0
         B = B // self.n_references
         
-        y = y.view(B, self.n_references, C, H, W)
-        y = y.permute(0, 2, 1, 3, 4).contiguous()   # must match the order of permutation in sim
-        y = y.view(B, C, self.n_references * H * W)
+        y = y.reshape(B, self.n_references, C, H, W)
+        y = y.permute(0, 2, 1, 3, 4)    # must match the order of permutation in sim
+        y = y.reshape(B, C, self.n_references * H * W)
         out = torch.matmul(y, sim)
         out = out.view(B, C, H, W)
         

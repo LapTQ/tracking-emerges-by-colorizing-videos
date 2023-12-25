@@ -25,10 +25,10 @@ class BasicBlock(nn.Module):
     ):
         x = self.conv1(x)
         x = self.bn1(x)
-        x = F.relu(x)
+        x = F.leaky_relu(x)
         x = self.conv2(x)
         x = self.bn2(x)
-        x = F.relu(x)
+        x = F.leaky_relu(x)
 
         return x
 

@@ -99,6 +99,7 @@ def train():
         project='Tracking emerges by colorizing videos',
         config=config,
     )
+    wandb.watch(model, log_freq=1)
 
     queue = Queue(maxsize=config_training['show_batch_queue_max_size'])
     stop_show_running_batch = False
@@ -148,6 +149,16 @@ def train():
                         cv2.COLOR_LAB2BGR
                     ) for i in range(len(X)) for color in [true_color, predicted_color]
             ]
+
+            for i in range(len(tile) // 2):
+                table.add_data(
+                    epoch,
+                    b_idx,
+                    wandb.Image(tile[2*i]),
+                    wandb.Image(tile[2*i+1])
+                )
+                wandb.log({"Predictions_table": table}, commit=False)
+
             tile = imgviz.tile(
                 tile,
                 border=(255, 255, 255),
@@ -159,17 +170,7 @@ def train():
             # cv2.imshow(window_title, tile)
             # key = cv2.waitKey(1)
             # if key == ord('q'):
-            #     exit(0)
-
-            for i in range(len(tile) / 2):
-                table.add_data(
-                    epoch,
-                    b_idx,
-                    wandb.Image(tile[2*i]),
-                    wandb.Image(tile[2*i+1])
-                )
-
-                    
+            #     exit(0)      
         
         cv2.destroyAllWindows()
 
@@ -217,13 +218,8 @@ def train():
                 running_correct = 0
             total_train_loss += loss.item()
             total_train_correct += n_corrects
-
-            wandb.log(
-                {
-                    'train_loss': loss.item(),
-                    'train_acc': n_corrects / (H * W)
-                }
-            )
+            
+            wandb.log({"loss": loss})
             
         total_train_loss /= len(train_dataloader)
         total_train_correct /= len(train_dataloader) * H * W
@@ -274,13 +270,6 @@ def train():
                 'true_color': true_color,
                 'predicted_color': predicted_color
             })
-
-            wandb.log(
-                {
-                    'val_loss': loss.item(),
-                    'val_acc': n_corrects / (H * W)
-                }
-            )
         
         total_val_loss /= len(val_dataloader)
         total_val_correct /= len(val_dataloader) * H * W
@@ -294,6 +283,14 @@ def train():
             total_val_correct,
             optimizer.param_groups[0]['lr']
         ))
+
+        wandb.log({
+            'train_loss': total_train_loss,
+            'val_loss': total_val_loss,
+            'train_acc': total_train_correct,
+            'val_acc': total_val_correct,
+            'lr': optimizer.param_groups[0]['lr']
+        })
         
         for scheduler in schedulers:
             scheduler.step(total_val_loss)

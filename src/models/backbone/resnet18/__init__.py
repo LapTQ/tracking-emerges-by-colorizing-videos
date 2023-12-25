@@ -34,7 +34,7 @@ class BasicBlock(nn.Module):
 
         x = self.conv1(x)
         x = self.bn1(x)
-        x = F.relu(x)
+        x = F.leaky_relu(x)
         x = self.conv2(x)
         x = self.bn2(x)
 
@@ -42,7 +42,7 @@ class BasicBlock(nn.Module):
             identity = self.downsample(identity)
         
         x = x + identity
-        x = F.relu(x)
+        x = F.leaky_relu(x)
 
         return x
 
@@ -88,7 +88,7 @@ class CustomBackbone(nn.Module):
     ):
         x = self.conv1(x)
         x = self.bn1(x)
-        x = F.relu(x)
+        x = F.leaky_relu(x)
         x = self.maxpool(x)
 
         x = self.layer1(x)

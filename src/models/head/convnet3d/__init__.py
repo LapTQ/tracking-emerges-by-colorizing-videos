@@ -17,13 +17,6 @@ class BasicBlock(nn.Module):
         self.bn1 = nn.BatchNorm3d(out_channels)
         self.conv2 = nn.Conv3d(out_channels, out_channels, kernel_size=(3, 1, 1), padding=(1, 0, 0), bias=False)
         self.bn2 = nn.BatchNorm3d(out_channels)
-
-        for m in self.modules():
-            if isinstance(m, nn.Conv3d):
-                    nn.init.kaiming_normal_(m.weight, mode='fan_out')
-            elif isinstance(m ,nn.BatchNorm3d):
-                    nn.init.constant_(m.weight, 1)
-                    nn.init.constant_(m.bias, 0)
     
 
     def forward(
@@ -64,6 +57,13 @@ class CustomHead(nn.Module):
         self.layer4 = BasicBlock(mid_channels, mid_channels, dilations[3])
         self.layer5 = BasicBlock(mid_channels, mid_channels, dilations[4])
         self.conv = nn.Conv3d(mid_channels, out_channels, kernel_size=1)
+
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight, mode='fan_out')
+            elif isinstance(m ,nn.BatchNorm2d):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
 
 
     def forward(

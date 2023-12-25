@@ -26,13 +26,6 @@ class BasicBlock(nn.Module):
                 nn.BatchNorm2d(out_channels)
             )
 
-        for m in self.modules():
-            if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(m.weight, mode='fan_out')
-            elif isinstance(m ,nn.BatchNorm2d):
-                nn.init.constant_(m.weight, 1)
-                nn.init.constant_(m.bias, 0)
-                
 
     def forward(
             self,
@@ -76,6 +69,13 @@ class CustomBackbone(nn.Module):
         self.layer2 = self._make_layer(mid_channels[0], mid_channels[1], mid_strides[1])
         self.layer3 = self._make_layer(mid_channels[1], mid_channels[2], mid_strides[2])
         self.layer4 = self._make_layer(mid_channels[2], mid_channels[3], mid_strides[3])
+
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight, mode='fan_out')
+            elif isinstance(m ,nn.BatchNorm2d):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
 
     
     def _make_layer(

@@ -109,6 +109,7 @@ class Colorizer(nn.Module):
 
         tar = tar.view(B, C, H * W)
         sim = torch.matmul(ref, tar)
+        sim = F.softmax(sim, dim=1)
 
         return sim
     

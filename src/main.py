@@ -189,6 +189,7 @@ def train():
             X, Y = batch
             X = X.to(device)
             Y = Y.to(device)
+            assert torch.all(X <= 1.0)
             batch_size, _, H, W = X.shape
             true_color = Y[[i for i in range(batch_size) if i % (n_references + 1) == n_references]]
             ref_colors = Y[[i for i in range(batch_size) if i % (n_references + 1) != n_references]]

@@ -140,12 +140,12 @@ def train():
                 border_width=5
             )
             cv2.imwrite('temp.jpg', tile)
-            window_title = 'Validation images'
-            cv2.namedWindow(window_title, cv2.WINDOW_NORMAL)
-            cv2.imshow(window_title, tile)
-            key = cv2.waitKey(1)
-            if key == ord('q'):
-                exit(0)
+            # window_title = 'Validation images'
+            # cv2.namedWindow(window_title, cv2.WINDOW_NORMAL)
+            # cv2.imshow(window_title, tile)
+            # key = cv2.waitKey(1)
+            # if key == ord('q'):
+            #     exit(0)
         
         cv2.destroyAllWindows()
 

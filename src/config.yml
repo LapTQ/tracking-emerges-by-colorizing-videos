@@ -7,7 +7,7 @@ dataset:
     kwargs:
       dataset_dir: data/k700-2020
       n_references: 3
-      n_samples: 96
+      n_samples: 1024
       batch_size: 32
       shuffle: True
       frame_rate: 6
@@ -16,7 +16,7 @@ dataset:
     kwargs:
       dataset_dir: data/k700-2020
       n_references: 3
-      n_samples: 16
+      n_samples: 24
       batch_size: 32
       shuffle: False
       frame_rate: 6
@@ -92,7 +92,7 @@ training:
         patience: 2
         verbose: True
   epochs: 15
-  verbose_step: 1
+  verbose_step: 3
   show_batch_queue_max_size: 3
 
 prediction:

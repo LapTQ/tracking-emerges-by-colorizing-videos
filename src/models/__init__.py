@@ -62,7 +62,7 @@ class Colorizer(nn.Module):
 
             assert 'n_references' in head_kwargs
             self._product.n_references = head_kwargs['n_references']
-            self.use_softmax = use_softmax
+            self._product.use_softmax = use_softmax
 
             product = self._product
             self.reset()

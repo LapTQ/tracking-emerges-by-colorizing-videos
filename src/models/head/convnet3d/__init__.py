@@ -1,5 +1,6 @@
 from torch import nn
 import torch.nn.functional as F
+from torchsummary import summary
 
 
 class BasicBlock(nn.Module):
@@ -43,7 +44,7 @@ class CustomHead(nn.Module):
 
         # parse kwargs
         self.n_references = kwargs['n_references']
-        in_channels = kwargs.get('in_channels', 256)
+        in_channels = kwargs['in_channels']
         mid_channels = kwargs.get('mid_channels', 256)
         out_channels = kwargs.get('out_channels', 64)
         dilations = kwargs.get('dilations', [1, 2, 4, 8, 16])
@@ -60,7 +61,7 @@ class CustomHead(nn.Module):
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(m.weight, mode='fan_out')
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='leaky_relu')
             elif isinstance(m ,nn.BatchNorm2d):
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
@@ -89,3 +90,14 @@ class CustomHead(nn.Module):
         x = x.reshape(B, -1, H, W)
 
         return x
+    
+
+if __name__ == '__main__':
+    model = CustomHead(
+        n_references=1,
+        in_channels=512,
+        mid_channels=256,
+        out_channels=64,
+        dilations=[1, 2, 4, 8, 16]
+    )
+    summary(model, (512, 32, 32))

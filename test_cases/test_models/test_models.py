@@ -33,7 +33,7 @@ def config_dataset_template():
     config_dataset['module_name'] = 'fake'
     config_dataset['kwargs']['n_references'] = 3
     config_dataset['kwargs']['n_samples'] = 1024
-    config_dataset['kwargs']['batch_size'] = 32
+    config_dataset['kwargs']['batch_size'] = 16
     config_dataset['kwargs']['shuffle'] = True
 
     assert config_dataset['kwargs']['batch_size'] % (config_dataset['kwargs']['n_references'] + 1) == 0
@@ -125,8 +125,8 @@ def test_model_shape(
         'backbone': {
             'module_name': 'resnet18',
             'kwargs': {
-                'mid_channels': [64, 256, 256, 256],
-                'mid_strides': [1, 2, 1, 1]
+                'mid_channels': [128, 256, 256, 512],
+                'mid_strides': [1, 2, 1, 2]
             }
         },
         'head': {
@@ -190,7 +190,7 @@ def test_model_shape(
     # check shape
     assert backbone_output.shape == (
         batch_size,
-        256,
+        config_model['backbone']['kwargs']['mid_channels'][-1],
         target_label_size[0],
         target_label_size[1]
     )

@@ -8,7 +8,7 @@ dataset:
       dataset_dir: data/k700-2020
       n_references: 3
       n_samples: 1024
-      batch_size: 32
+      batch_size: 16
       shuffle: True
       frame_rate: 6
   val:
@@ -17,7 +17,7 @@ dataset:
       dataset_dir: data/k700-2020
       n_references: 3
       n_samples: 24
-      batch_size: 32
+      batch_size: 16
       shuffle: False
       frame_rate: 6
   predict:
@@ -63,8 +63,8 @@ model:
   backbone:
     module_name: resnet18
     kwargs:
-      mid_channels: [64, 256, 256, 256]
-      mid_strides: [1, 2, 1, 1]
+      mid_channels: [128, 256, 256, 512]
+      mid_strides: [1, 2, 1, 2]
 
   head:
     module_name: convnet3d

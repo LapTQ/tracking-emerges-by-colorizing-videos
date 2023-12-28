@@ -18,6 +18,7 @@ class CustomDataset(Dataset):
 
         self.imW = 224
         self.imH = 224
+        self.shift_radius = 15
 
 
     def __len__(self):
@@ -49,21 +50,27 @@ class CustomDataset(Dataset):
         
     
     def _create_fake_square(self):
-        n_shapes = 2
+        n_shapes = 3
+        shift_amount = 30
         square_size = min(self.imW, self.imH) // 2
         
         colors = np.random.randint(0, 255, size=(n_shapes, 3), dtype=np.uint8)
-        indexes = np.random.randint(0, self.imW * self.imH, size=(n_shapes,), dtype=np.uint32)
-        indexes = np.stack([indexes // self.imW, indexes % self.imW], axis=1)
+        centers = [
+            [np.random.randint(0, self.imH), np.random.randint(0, self.imW)]
+            for _ in range(n_shapes)
+        ]
 
         ret = []
         for _ in range(self.n_references + 1):
             img = 100 + np.zeros((self.imH, self.imW, 3), dtype=np.uint8)
-            indexes = np.random.randint(0, self.imW * self.imH, size=(n_shapes,), dtype=np.uint32)
-            indexes = np.stack([indexes // self.imW, indexes % self.imW], axis=1)
-            for i in range(n_shapes):
-                x, y = indexes[i]
+            for i, (x, y) in enumerate(centers):
                 img[max(x - square_size//2, 0):x + square_size//2, max(y - square_size//2, 0):y + square_size//2] = colors[i]
+
+                np.random.rand
+                angle = np.random.rand() * 2 * np.pi
+                centers[i][0] += int(shift_amount * np.cos(angle))
+                centers[i][1] += int(shift_amount * np.sin(angle))
+                
             img = cv2.blur(img, (square_size//2, square_size//2))
             ret.append(img)
 

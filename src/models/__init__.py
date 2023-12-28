@@ -113,8 +113,6 @@ class Colorizer(nn.Module):
         sim = torch.matmul(ref, tar)
         if self.use_softmax:
             sim = F.softmax(sim, dim=1)
-        else:
-            sim = F.normalize(sim, p=1, dim=1)
 
         return sim
     

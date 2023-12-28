@@ -7,7 +7,7 @@ dataset:
     kwargs:
       dataset_dir: data/k700-2020
       n_references: 3
-      n_samples: 1024
+      n_samples: 240
       batch_size: 16
       shuffle: True
       frame_rate: 6
@@ -72,6 +72,8 @@ model:
       mid_channels: 256
       out_channels: 64
       dilations: [1, 2, 4, 8, 16]
+  kwargs: 
+    use_softmax: False
   
   checkpoint_path: checkpoints/model/Colorizer
 

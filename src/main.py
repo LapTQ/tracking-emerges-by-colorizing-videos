@@ -47,7 +47,8 @@ def train():
     }
     config_model['kwargs'] = {
         'backbone': config_model['backbone']['kwargs'],
-        'head': config_model['head']['kwargs']
+        'head': config_model['head']['kwargs'],
+        **config_model['kwargs']
     }
 
     # set model parameters to match the input
@@ -189,7 +190,7 @@ def train():
             X, Y = batch
             X = X.to(device)
             Y = Y.to(device)
-            batch_size, _, H, W = X.shape
+            batch_size, _, H, W = Y.shape
             true_color = Y[[i for i in range(batch_size) if i % (n_references + 1) == n_references]]
             ref_colors = Y[[i for i in range(batch_size) if i % (n_references + 1) != n_references]]
             ref_colors = ref_colors.float()
@@ -234,7 +235,7 @@ def train():
             X, Y = batch
             X = X.to(device)
             Y = Y.to(device)
-            batch_size = X.shape[0]
+            batch_size, _, H, W = Y.shape
             true_color = Y[[i for i in range(batch_size) if i % (n_references + 1) == n_references]]
             ref_colors = Y[[i for i in range(batch_size) if i % (n_references + 1) != n_references]]
             ref_colors = ref_colors.float()

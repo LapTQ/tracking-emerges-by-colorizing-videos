@@ -46,6 +46,7 @@ class Colorizer(nn.Module):
             # parse kwargs
             backbone_kwargs = kwargs['backbone']
             head_kwargs = kwargs['head']
+            use_softmax = kwargs['use_softmax']
 
             self._product.backbone = backbone_factory(
                 module_name=self.backbone_name
@@ -61,6 +62,7 @@ class Colorizer(nn.Module):
 
             assert 'n_references' in head_kwargs
             self._product.n_references = head_kwargs['n_references']
+            self.use_softmax = use_softmax
 
             product = self._product
             self.reset()
@@ -109,7 +111,8 @@ class Colorizer(nn.Module):
 
         tar = tar.view(B, C, H * W)
         sim = torch.matmul(ref, tar)
-        sim = F.softmax(sim, dim=1)
+        if self.use_softmax:
+            sim = F.softmax(sim, dim=1)
 
         return sim
     

@@ -73,7 +73,7 @@ model:
       out_channels: 64
       dilations: [1, 2, 4, 8, 16]
   kwargs: 
-    use_softmax: False
+    use_softmax: True
   
   checkpoint_path: checkpoints/model/Colorizer
 
@@ -86,7 +86,7 @@ training:
   optimizer:
     module_name: SGD
     kwargs:
-      lr: 0.001
+      lr: 0.1
       momentum: 0.9
       nesterov: True
   schedulers:
@@ -98,7 +98,9 @@ training:
   epochs: 15
   verbose_step: 3
   show_batch_queue_max_size: 3
-  wandb_api_key: e69d06fcc3d68400a0d96551a93e5b7521a3eef5
+  
+  wandb:
+    api_key: e69d06fcc3d68400a0d96551a93e5b7521a3eef5
 
 prediction:
   device: cuda:0

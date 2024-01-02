@@ -1,8 +1,9 @@
 - Refine the logging: log message, log visualization progress,.. all to the same folder
 - Add load checkpoint for model => separate the Checkpoint manager to a separate class
+- target for learning rate scheduler must depend on the scheduler type
+- Add early stopping
 - multi-threading for train and val
 - Automate visual testing
-- Fine tune model initialization such as He, BN, etc.
 - Add spatial info to the head
 - WanDB
 - Vision Transformer

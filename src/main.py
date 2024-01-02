@@ -37,6 +37,7 @@ def train():
     config_transform = config['transform']['train']
     config_model = config['model']
     config_training = config['training']
+    config_wandb = config_training['wandb']
 
     n_references = config_train_dataset['kwargs']['n_references']
     assert config_val_dataset['kwargs']['n_references'] == n_references
@@ -95,7 +96,7 @@ def train():
     epochs = config_training['epochs']
     verbose_step = config_training['verbose_step']
 
-    wandb.login(key=config_training['wandb_api_key'])
+    wandb.login(key=config_wandb['api_key'])
     wandb.init(
         project='Tracking emerges by colorizing videos',
         config=config,
@@ -213,7 +214,7 @@ def train():
                     b_idx + 1,
                     len(train_dataloader),
                     running_loss / verbose_step,
-                    running_correct / (verbose_step * H * W)
+                    round(running_correct / (verbose_step * H * W) / (batch_size // (n_references + 1)) * 100, 1)
                 ))
                 running_loss = 0.0
                 running_correct = 0
@@ -255,7 +256,7 @@ def train():
                     b_idx + 1,
                     len(val_dataloader),
                     running_loss / verbose_step,
-                    running_correct / (verbose_step * H * W)
+                    round(running_correct / (verbose_step * H * W) / (batch_size // (n_references + 1)) * 100, 1)
                 ))
                 running_loss = 0.0
                 running_correct = 0
@@ -294,7 +295,7 @@ def train():
         })
         
         for scheduler in schedulers:
-            scheduler.step(total_val_loss)
+            scheduler.step(total_train_loss)
     
     stop_show_running_batch = True
     

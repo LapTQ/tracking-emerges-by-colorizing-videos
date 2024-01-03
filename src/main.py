@@ -9,6 +9,7 @@ sys.path.append(str(ROOT_DIR))
 import src as GLOBAL
 from src.utils.dataset import setup_dataset_and_transform
 from src.models import model_factory
+from src.callbacks import callback_factory
 from src.utils.mics import set_seed, get_device
 
 # ==================================================================================================
@@ -74,9 +75,10 @@ def train():
     val_dataloader = _['dataloader']
 
     model = model_factory(
-        **config_model['module_name']
+        **config_model['module_name'],
     )(
-        **config_model.get('kwargs', {})
+        **config_model.get('kwargs', {}),
+        checkpoint_path=config_training['checkpoint_path'],
     )
     LOGGER.info('Model:\n{}'.format(model))
 
@@ -92,6 +94,15 @@ def train():
             optimizer,
             **scheduler['kwargs']
         ) for scheduler in config_training.get('schedulers', [])
+    ]
+    callbacks = [
+        callback_factory(
+            module_name=callback['module_name'],
+        )(
+            model=model,
+            checkpoint_path=config_training['checkpoint_path'],
+            **callback['kwargs']
+        ) for callback in config_training.get('callbacks', [])
     ]
     epochs = config_training['epochs']
     verbose_step = config_training['verbose_step']
@@ -179,13 +190,14 @@ def train():
     show_val_thread = Thread(target=_show_running_batch, args=(queue,))
     show_val_thread.start()
 
+    callback_stop = False
     for epoch in range(epochs):
 
         # training
         running_loss = 0.0
         running_correct = 0
-        total_train_loss = 0.0
-        total_train_correct = 0
+        train_loss = 0.0
+        train_acc = 0
         model.train()
         for b_idx, batch in enumerate(train_dataloader):
             X, Y = batch
@@ -218,19 +230,19 @@ def train():
                 ))
                 running_loss = 0.0
                 running_correct = 0
-            total_train_loss += loss.item()
-            total_train_correct += n_corrects
+            train_loss += loss.item()
+            train_acc += n_corrects
             
             wandb.log({"loss": loss})
             
-        total_train_loss /= len(train_dataloader)
-        total_train_correct /= len(train_dataloader) * H * W
+        train_loss /= len(train_dataloader)
+        train_acc /= len(train_dataloader) * H * W
 
         # validation
         running_loss = 0.0
         running_correct = 0
-        total_val_loss = 0.0
-        total_val_correct = 0
+        val_loss = 0.0
+        val_acc = 0
         model.eval()
         for b_idx, batch in enumerate(val_dataloader):
             X, Y = batch
@@ -260,8 +272,8 @@ def train():
                 ))
                 running_loss = 0.0
                 running_correct = 0
-            total_val_loss += loss.item()
-            total_val_correct += n_corrects
+            val_loss += loss.item()
+            val_acc += n_corrects
 
             if queue.full():
                 queue.get()
@@ -273,29 +285,47 @@ def train():
                 'predicted_color': predicted_color
             })
         
-        total_val_loss /= len(val_dataloader)
-        total_val_correct /= len(val_dataloader) * H * W
+        val_loss /= len(val_dataloader)
+        val_acc /= len(val_dataloader) * H * W
 
         LOGGER.info('[Epoch {}/{}] train loss: {}, val loss: {}, train acc: {}, val acc: {}, lr: {}'.format(
             epoch + 1,
             epochs,
-            total_train_loss,
-            total_val_loss,
-            total_train_correct,
-            total_val_correct,
+            train_loss,
+            val_loss,
+            train_acc,
+            val_acc,
             optimizer.param_groups[0]['lr']
         ))
 
         wandb.log({
-            'train_loss': total_train_loss,
-            'val_loss': total_val_loss,
-            'train_acc': total_train_correct,
-            'val_acc': total_val_correct,
+            'train_loss': train_loss,
+            'val_loss': val_loss,
+            'train_acc': train_acc,
+            'val_acc': val_acc,
             'lr': optimizer.param_groups[0]['lr']
         })
         
         for scheduler in schedulers:
-            scheduler.step(total_train_loss)
+            scheduler.step(train_loss)
+
+        model.save_checkpoint()
+        
+        for callback, cfg in zip(callbacks, config_training['callbacks']):
+            target = cfg['kwargs']['target']
+            assert target in ['train_loss', 'val_loss', 'train_acc', 'val_acc']
+            if not callback.step(
+                train_loss if target == 'train_loss' \
+                else val_loss if target == 'val_loss' \
+                else train_acc if target == 'train_acc' \
+                else val_acc
+            ):
+                callback_stop = True
+                break
+        
+        if callback_stop:
+            break
+
     
     stop_show_running_batch = True
     

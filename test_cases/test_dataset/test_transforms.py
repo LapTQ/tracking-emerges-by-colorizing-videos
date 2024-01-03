@@ -363,7 +363,7 @@ def test_Quantize_checkpoint():
         n_fit=config_transform[-1]['kwargs']['n_fit']        
     )
 
-    # 1. check point path is file
+    # 1. checkpoint path is file
     checkpoint_path = 'checkpoints/transform/Quantize/test_case/checkpoint.pkl'
     parent, filename = os.path.split(checkpoint_path)
     os.system('rm -rf {}'.format(parent))
@@ -403,7 +403,7 @@ def test_Quantize_checkpoint():
     quantize_transform = label_transform.transforms[-1]
     assert quantize_transform.is_fitted
 
-    # 2. check point path is directory
+    # 2. checkpoint path is directory
     checkpoint_path = 'checkpoints/transform/Quantize/test_case/'
     os.system('rm -rf {}'.format(checkpoint_path))
 
@@ -443,7 +443,7 @@ def test_Quantize_checkpoint():
     quantize_transform.fit(Y_to_fit)
     assert len(os.listdir(checkpoint_path)) == 2
 
-    # 3. check point path is None
+    # 3. checkpoint path is None
     os.system('rm -rf {}'.format(checkpoint_path))
     config_transform[-1]['kwargs']['checkpoint_path'] = None
 

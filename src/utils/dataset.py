@@ -8,7 +8,6 @@ sys.path.append(str(ROOT_DIR))
 
 import src as GLOBAL
 
-from src.models import model_factory
 from src.datasets import dataset_factory
 from src.datasets.utils import custom_collate_fn
 from src.transforms import transform_factory

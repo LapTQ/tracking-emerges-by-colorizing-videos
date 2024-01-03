@@ -74,14 +74,11 @@ model:
       dilations: [1, 2, 4, 8, 16]
   kwargs: 
     use_softmax: True
-  
-  checkpoint_path: checkpoints/model/Colorizer
-
-
 
 
 training:
   device: auto    # 'auto' or 'cuda:0' or 'cpu'
+  epochs: 15
   loss: CrossEntropyLoss
   optimizer:
     module_name: SGD
@@ -95,12 +92,22 @@ training:
         mode: min
         patience: 2
         verbose: True
-  epochs: 15
+  callbacks:
+    - module_name: earlystopping
+      kwargs:
+        target: val_loss  # 'train_loss', 'val_loss', 'train_acc', 'val_acc'
+        patience: 5
+        mode: min
+        min_delta: 0
+  checkpoint_path: checkpoints/model/Colorizer
+  
   verbose_step: 3
   show_batch_queue_max_size: 3
   
+  
   wandb:
     api_key: e69d06fcc3d68400a0d96551a93e5b7521a3eef5
+
 
 prediction:
   device: cuda:0

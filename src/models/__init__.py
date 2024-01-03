@@ -1,3 +1,17 @@
+from pathlib import Path
+import sys
+
+HERE = Path(__file__).parent
+ROOT_DIR = HERE.parent.parent
+
+sys.path.append(str(ROOT_DIR))
+
+import src as GLOBAL
+from src.utils.logger import parse_save_checkpoint_path, parse_load_checkpoint_path
+LOGGER = GLOBAL.LOGGER
+
+# ==================================================================================================
+
 import torch
 from torch import nn
 import torch.nn.functional as F
@@ -47,6 +61,7 @@ class Colorizer(nn.Module):
             backbone_kwargs = kwargs['backbone']
             head_kwargs = kwargs['head']
             use_softmax = kwargs['use_softmax']
+            checkpoint_path = kwargs.get('checkpoint_path', None)
 
             self._product.backbone = backbone_factory(
                 module_name=self.backbone_name
@@ -63,6 +78,11 @@ class Colorizer(nn.Module):
             assert 'n_references' in head_kwargs
             self._product.n_references = head_kwargs['n_references']
             self._product.use_softmax = use_softmax
+            self._product.checkpoint_path = checkpoint_path
+
+            if checkpoint_path is not None:
+                checkpoint_path = checkpoint_path.strip()
+                self._product.load_checkpoint()
 
             product = self._product
             self.reset()
@@ -141,6 +161,39 @@ class Colorizer(nn.Module):
         out = out.view(B, C, H, W)
         
         return out
+
+
+    def load_checkpoint(self):
+        if self.checkpoint_path is None:
+            raise ValueError('Checkpoint argument is set to None, so loading checkpoint is not allowed.')
+        
+        file_path = parse_load_checkpoint_path(
+            input_path=self.checkpoint_path,
+            ext='pth',
+        )
+
+        if file_path == -1:
+            return
+        
+        weight = torch.load(file_path)
+        self.load_state_dict(weight)
+
+        LOGGER.info('Model loaded from {}.'.format(file_path))
+    
+
+    def save_checkpoint(self):
+        if self.checkpoint_path is None:
+            raise ValueError('Checkpoint argument is set to None, so saving checkpoint is not allowed.')
+        
+        self.checkpoint_path = parse_save_checkpoint_path(
+            input_path=self.checkpoint_path,
+            ext='pth',
+        )
+        
+        torch.save(self.state_dict(), self.checkpoint_path)
+        LOGGER.info('Model saved to {}.'.format(self.checkpoint_path))
+
+
     
 
         

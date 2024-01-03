@@ -8,6 +8,7 @@ ROOT_DIR = HERE.parent.parent.parent
 sys.path.append(str(ROOT_DIR))
 
 import src as GLOBAL
+from src.utils.logger import parse_save_checkpoint_path, parse_load_checkpoint_path
 LOGGER = GLOBAL.LOGGER
 
 # ==================================================================================================
@@ -17,7 +18,6 @@ from sklearn.cluster import KMeans
 from sklearn.preprocessing import OneHotEncoder, LabelEncoder
 import pickle
 import os
-from datetime import datetime
 import numpy as np
 
 
@@ -60,7 +60,7 @@ class CustomTransform(nn.Module):
 
         if self.checkpoint_path is not None:
             self.checkpoint_path = self.checkpoint_path.strip()
-            self._load_checkpoint()
+            self.load_checkpoint()
     
 
     def fit(self, X):
@@ -72,7 +72,7 @@ class CustomTransform(nn.Module):
         LOGGER.info('Model {} and encoder {} fitted.'.format(self.model, self.encoder))
 
         if self.checkpoint_path is not None:
-            self._save_checkpoint()
+            self.save_checkpoint()
     
 
     def get_params(self):
@@ -82,28 +82,17 @@ class CustomTransform(nn.Module):
         }
 
     
-    def _load_checkpoint(self):
+    def load_checkpoint(self):
         if self.checkpoint_path is None:
             raise ValueError('Checkpoint argument is set to None, so loading checkpoint is not allowed.')
         
-        if not os.path.exists(self.checkpoint_path):
-            LOGGER.warning('Checkpoint path was set but {} does not exist. Starting from scratch'.format(self.checkpoint_path))
-            return
+        file_path = parse_load_checkpoint_path(
+            input_path=self.checkpoint_path,
+            ext='pkl',
+        )
 
-        if os.path.isdir(self.checkpoint_path):
-            filenames = [f for f in os.listdir(self.checkpoint_path) if f.endswith('.pkl')]
-            if len(filenames) == 0:
-                LOGGER.warning('No checkpoint .pkl file exists in {}. Starting from scratch.'.format(self.checkpoint_path))
-                return
-            last = sorted(filenames)[-1]
-            LOGGER.warning('{} is a directory. So new checkpoint will be created after each fit.'.format(self.checkpoint_path))
-            
-            file_path = os.path.join(self.checkpoint_path, last)
-            LOGGER.info('Loading the last checkpoint at {}'.format(file_path))
-        else:
-            assert self.checkpoint_path.endswith('.pkl'), 'Checkpoint path must be a .pkl file.'
-            LOGGER.warning('{} is a file. So it will be overwritten after each fit.'.format(self.checkpoint_path))
-            file_path = self.checkpoint_path
+        if file_path == -1:
+            return
         
         with open(file_path, 'rb') as f:
             loaded_file = pickle.load(f)
@@ -119,25 +108,17 @@ class CustomTransform(nn.Module):
         LOGGER.info('Quantize model loaded successfully:\n{}'.format(str(self)))
 
     
-    def _save_checkpoint(self):
+    def save_checkpoint(self):
         if not self.is_fitted:
             raise ValueError('Model is not fitted yet.')
 
         if self.checkpoint_path is None:
             raise ValueError('Checkpoint argument is set to None, so saving checkpoint is not allowed.')
         
-        # check if the path is a directory or file
-        parent, filename = os.path.split(self.checkpoint_path)
-        is_dir = '.' not in filename or filename == ''
-
-        os.makedirs(parent, exist_ok=True)
-        if is_dir:
-            target_filename = 'checkpoint_{}.pkl'.format(datetime.now().strftime('%Y%m%d_%H%M%S'))
-            if filename == '':
-                self.checkpoint_path = os.path.join(parent, target_filename)
-            else:
-                os.makedirs(self.checkpoint_path, exist_ok=True)
-                self.checkpoint_path = os.path.join(self.checkpoint_path, target_filename)
+        self.checkpoint_path = parse_save_checkpoint_path(
+            input_path=self.checkpoint_path,
+            ext='pkl',
+        )
         
         with open(self.checkpoint_path, 'wb') as f:
             pickle.dump(

@@ -20,6 +20,7 @@ from copy import deepcopy
 import pytest
 import numpy as np
 from copy import deepcopy
+import os
 
 
 CONFIG_DATASET = GLOBAL.CONFIG['dataset']
@@ -91,11 +92,11 @@ def config_transform_template():
             'module_name': 'Quantize',
             'kwargs': {
                 'require_fit': True,
-                'n_fit': 96,
+                'n_fit': 32,
                 'model': {
                     'module_name': 'KMeans',
                     'kwargs': {
-                        'n_clusters': 16,
+                        'n_clusters': 8,
                     },
                 },
                 'encoder': 'OneHotEncoder',
@@ -125,17 +126,20 @@ def test_model_shape(
         'backbone': {
             'module_name': 'resnet18',
             'kwargs': {
-                'mid_channels': [128, 256, 256, 512],
+                'mid_channels': [32, 32, 32, 32],
                 'mid_strides': [1, 2, 1, 2]
             }
         },
         'head': {
             'module_name': 'convnet3d',
             'kwargs': {
-                'mid_channels': 256,
-                'out_channels': 64,
+                'mid_channels': 32,
+                'out_channels': 16,
                 'dilations': [1, 2, 4, 8, 16]
             }
+        },
+        'kwargs': {
+            'use_softmax': True
         }
     }
 
@@ -161,7 +165,8 @@ def test_model_shape(
     }
     config_model['kwargs'] = {
         'backbone': config_model['backbone']['kwargs'],
-        'head': config_model['head']['kwargs']
+        'head': config_model['head']['kwargs'],
+        **config_model['kwargs']
     }
 
     # set model parameters to match the input
@@ -209,6 +214,148 @@ def test_model_shape(
 
     for name, param in model.named_parameters():
         assert (torch.abs(param.grad) > 1e-4).any(), 'No element of {} has gradient greater than 1e-4'.format(name)
+
+    
+def test_model_checkpoint(
+        config_dataset_template,
+        config_transform_template
+):
+    # use smaller models for quick test
+    config_model = {
+        'backbone': {
+            'module_name': 'resnet18',
+            'kwargs': {
+                'mid_channels': [64, 64, 64, 64],
+                'mid_strides': [1, 2, 1, 1]
+            }
+        },
+        'head': {
+            'module_name': 'convnet3d',
+            'kwargs': {
+                'mid_channels': 64,
+                'out_channels': 16,
+                'dilations': [1, 2, 4, 8, 16]
+            }
+        },
+        'kwargs': {
+            'use_softmax': True
+        }
+    }
+
+    n_references = config_dataset_template['kwargs']['n_references']
+
+    # reformat config_model
+    config_model['module_name'] = {
+        'backbone': config_model['backbone']['module_name'],
+        'head': config_model['head']['module_name']
+    }
+    config_model['kwargs'] = {
+        'backbone': config_model['backbone']['kwargs'],
+        'head': config_model['head']['kwargs'],
+        **config_model['kwargs']
+    }
+
+    # set model parameters to match the input
+    config_model['kwargs']['backbone']['in_channels'] = 1
+    config_model['kwargs']['head']['n_references'] = n_references
+    config_model['kwargs']['head']['in_channels'] = config_model['backbone']['kwargs']['mid_channels'][-1]
+
+       
+    # 1. checkpoint path is file
+    checkpoint_path  = 'checkpoints/model/last.pth'
+    parent, filename = os.path.split(checkpoint_path)
+    os.system('rm -rf {}'.format(parent))
+
+    # 1.1. if parent directory does not exist, then file should not be created until being explicitly evoked.
+    model = model_factory(
+        **config_model['module_name']
+    )(
+        **config_model.get('kwargs', {}),
+        checkpoint_path=checkpoint_path
+    )
+    assert not os.path.exists(parent)
+    model.save_checkpoint()
+    assert os.path.exists(checkpoint_path)
+
+    # 1.2. if parent directory exists, but checkpoint file does not exists, then file should not be created until being explicitly evoked.
+    os.system('rm -rf {}'.format(parent))
+    os.makedirs(parent)
+    model = model_factory(
+        **config_model['module_name']
+    )(
+        **config_model.get('kwargs', {}),
+        checkpoint_path=checkpoint_path
+    )
+    assert not os.path.exists(checkpoint_path)
+    model.save_checkpoint()
+    assert os.path.exists(checkpoint_path)
+
+    # 1.3. if checkpoint file exists, it should be overwritten.
+    mtime = os.path.getmtime(checkpoint_path)
+    model = model_factory(
+        **config_model['module_name']
+    )(
+        **config_model.get('kwargs', {}),
+        checkpoint_path=checkpoint_path
+    )
+    assert mtime == os.path.getmtime(checkpoint_path)
+    model.save_checkpoint()
+    new_mtime = os.path.getmtime(checkpoint_path)
+    assert mtime < new_mtime
+    model.save_checkpoint()
+    assert new_mtime < os.path.getmtime(checkpoint_path)
+    assert len(os.listdir(parent)) == 1
+
+    # 2. checkpoint path is directory
+    checkpoint_path  = 'checkpoints/model/'
+    os.system('rm -rf {}'.format(checkpoint_path))
+
+    # 2.1. if directory does not exist, then file should not be created until being explicitly evoked.
+    model = model_factory(
+        **config_model['module_name']
+    )(
+        **config_model.get('kwargs', {}),
+        checkpoint_path=checkpoint_path
+    )
+    assert not os.path.exists(checkpoint_path)
+    model.save_checkpoint()
+    assert os.path.exists(checkpoint_path)
+    assert len(os.listdir(checkpoint_path)) == 1
+    assert model.checkpoint_path == os.path.join(checkpoint_path, os.listdir(checkpoint_path)[0])
+
+    # 2.2. if directory exists, but checkpoint file does not exists, then file should not be created until being explicitly evoked.
+    os.system('rm -rf {}'.format(checkpoint_path))
+    os.makedirs(checkpoint_path)
+    model = model_factory(
+        **config_model['module_name']
+    )(
+        **config_model.get('kwargs', {}),
+        checkpoint_path=checkpoint_path
+    )
+    assert len(os.listdir(checkpoint_path)) == 0
+    model.save_checkpoint()
+    assert len(os.listdir(checkpoint_path)) == 1
+    assert model.checkpoint_path == os.path.join(checkpoint_path, os.listdir(checkpoint_path)[0])
+
+    # 2.3. if a file exists, but the model instance stays the same, then the file should be overwritten.
+    mtime = os.path.getmtime(checkpoint_path)
+    model.save_checkpoint()
+    assert len(os.listdir(checkpoint_path)) == 1
+    assert mtime < os.path.getmtime(os.path.join(checkpoint_path, os.listdir(checkpoint_path)[0]))
+    assert model.checkpoint_path == os.path.join(checkpoint_path, os.listdir(checkpoint_path)[0])
+
+    # 2.4. if a file exists, but the model instance changes, then a new file should be created.
+    model = model_factory(
+        **config_model['module_name']
+    )(
+        **config_model.get('kwargs', {}),
+        checkpoint_path=checkpoint_path
+    )
+    model.save_checkpoint()
+    assert len(os.listdir(checkpoint_path)) == 2
+    assert model.checkpoint_path == os.path.join(checkpoint_path, sorted(os.listdir(checkpoint_path))[-1])
+
+    os.system('rm -rf {}'.format(parent))
 
 
 if __name__ == '__main__':

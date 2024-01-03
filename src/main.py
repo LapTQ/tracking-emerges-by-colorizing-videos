@@ -195,7 +195,7 @@ def train():
 
         # training
         running_loss = 0.0
-        running_correct = 0
+        running_acc = 0
         train_loss = 0.0
         train_acc = 0
         model.train()
@@ -218,7 +218,7 @@ def train():
             n_corrects = torch.sum(
                 torch.argmax(predicted_color, dim=1) == torch.argmax(true_color, dim=1)
             ).item()
-            running_correct += n_corrects
+            running_acc += n_corrects
             if b_idx % verbose_step == verbose_step - 1:
                 LOGGER.info('[Epoch {}/{}][Batch {}/{}] train loss: {}, train acc: {}'.format(
                     epoch + 1,
@@ -226,21 +226,21 @@ def train():
                     b_idx + 1,
                     len(train_dataloader),
                     running_loss / verbose_step,
-                    round(running_correct / (verbose_step * H * W) / (batch_size // (n_references + 1)) * 100, 1)
+                    round(running_acc / (verbose_step * H * W) / (batch_size // (n_references + 1)) * 100, 1)
                 ))
                 running_loss = 0.0
-                running_correct = 0
+                running_acc = 0
             train_loss += loss.item()
             train_acc += n_corrects
             
             wandb.log({"loss": loss})
             
         train_loss /= len(train_dataloader)
-        train_acc /= len(train_dataloader) * H * W
+        train_acc = round(train_acc / (len(train_dataloader) * H * W * batch_size // (n_references + 1)) * 100, 1)
 
         # validation
         running_loss = 0.0
-        running_correct = 0
+        running_acc = 0
         val_loss = 0.0
         val_acc = 0
         model.eval()
@@ -260,7 +260,7 @@ def train():
             n_corrects = torch.sum(
                 torch.argmax(predicted_color, dim=1) == torch.argmax(true_color, dim=1)
             ).item()
-            running_correct += n_corrects
+            running_acc += n_corrects
             if b_idx % verbose_step == verbose_step - 1:
                 LOGGER.info('[Epoch {}/{}][Batch {}/{}] val loss: {}, val acc: {}'.format(
                     epoch + 1,
@@ -268,10 +268,10 @@ def train():
                     b_idx + 1,
                     len(val_dataloader),
                     running_loss / verbose_step,
-                    round(running_correct / (verbose_step * H * W) / (batch_size // (n_references + 1)) * 100, 1)
+                    round(running_acc / (verbose_step * H * W) / (batch_size // (n_references + 1)) * 100, 1)
                 ))
                 running_loss = 0.0
-                running_correct = 0
+                running_acc = 0
             val_loss += loss.item()
             val_acc += n_corrects
 
@@ -286,7 +286,7 @@ def train():
             })
         
         val_loss /= len(val_dataloader)
-        val_acc /= len(val_dataloader) * H * W
+        val_acc = round(val_acc / (len(val_dataloader) * H * W * batch_size // (n_references + 1)) * 100, 1)
 
         LOGGER.info('[Epoch {}/{}] train loss: {}, val loss: {}, train acc: {}, val acc: {}, lr: {}'.format(
             epoch + 1,

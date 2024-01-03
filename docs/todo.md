@@ -1,14 +1,14 @@
-- Refine the logging: log message, log visualization progress,.. all to the same folder
-- Add load checkpoint for model => separate the Checkpoint manager to a separate class
+- Refine the logging: log message, log visualization progress, checkpoint... all to the same folder? should I??? (because the saving checkpoint can be quite different)
 - target for learning rate scheduler must depend on the scheduler type
 - Add early stopping
-- multi-threading for train and val
+- multi-threading for train and val, separate train and val to different functions
 - Automate visual testing
 - Add spatial info to the head
-- WanDB
+- kinetic dataset
 - Vision Transformer
 - Active learning, analyse scaling laws
 - Multi-loss
+- verify if SSL good for generalization
 - Add type checking
 - CI/CD
 - Document code with sphinx

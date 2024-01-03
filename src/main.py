@@ -315,7 +315,7 @@ def train():
             target = cfg['kwargs']['target']
             assert target in ['train_loss', 'val_loss', 'train_acc', 'val_acc']
             if not callback.step(
-                train_loss if target == 'train_loss' \
+                target=train_loss if target == 'train_loss' \
                 else val_loss if target == 'val_loss' \
                 else train_acc if target == 'train_acc' \
                 else val_acc

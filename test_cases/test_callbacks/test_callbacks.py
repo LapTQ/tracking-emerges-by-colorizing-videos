@@ -124,6 +124,7 @@ def test_earlystopping(
     os.system(f'rm -rf {checkpoint_path}')
 
     # in context with real training
+    # 1. if checkpoint_path is directory
     model.checkpoint_path = checkpoint_path
     callback = callback_factory(
         module_name=config_callback['module_name']
@@ -151,6 +152,38 @@ def test_earlystopping(
         assert (mtime > previous_mtime) == modified
     
     os.system(f'rm -rf {checkpoint_path}')
+
+    # 2. if checkpoint_path is file
+    os.makedirs(checkpoint_path, exist_ok=True)
+    model.save_checkpoint()
+    checkpoint_path = model.checkpoint_path
+    parent, name = os.path.split(checkpoint_path)
+    callback = callback_factory(
+        module_name=config_callback['module_name']
+    )(
+        model=model,
+        checkpoint_path=checkpoint_path,
+        **config_callback.get('kwargs', {})
+    )
+
+    for i, (value, count, returned_value, modified) in enumerate(zip(step_values, counters, returns, checkpoint_modified)):
+        model.save_checkpoint()
+        assert returned_value == callback.step(
+            value=value
+        )
+        print(i, mode, min_delta, value)
+        assert callback.counter == count
+        
+        assert len(os.listdir(parent)) == 2
+        if i == 0:
+            mtime = os.path.getmtime(os.path.join(parent, sorted(os.listdir(parent))[-1]))
+            continue
+
+        previous_mtime = mtime
+        mtime = os.path.getmtime(os.path.join(parent, sorted(os.listdir(parent))[-1]))
+        assert (mtime > previous_mtime) == modified
+    
+    os.system(f'rm -rf {parent}')
         
 
 

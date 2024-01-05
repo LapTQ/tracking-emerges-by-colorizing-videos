@@ -38,6 +38,7 @@ class CustomCallback:
         self.checkpoint_path = checkpoint_path
         self.best = None
         self.counter = 0
+        self._first_time = True
 
         assert self.mode in ['min', 'max']
 
@@ -80,13 +81,15 @@ class CustomCallback:
             input_path=self.checkpoint_path,
             ext='pth'
         )
-        if not os.path.isfile(file_path):
+
+        if self._first_time:
             parent, name = os.path.split(file_path)
             basename, ext = os.path.splitext(name)
             self.checkpoint_path = os.path.join(
                 parent,
                 f'{basename}_best{ext}'
             )
+            self._first_time = False
         else:
             self.checkpoint_path = file_path
 

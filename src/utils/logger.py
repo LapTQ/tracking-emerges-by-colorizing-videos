@@ -66,18 +66,17 @@ def parse_save_checkpoint_path(
     if input_path is None:
         return None
     
+    input_path = input_path.strip().rstrip('/')
+    
     # check if the path is a directory or file
     parent, filename = os.path.split(input_path)
-    is_dir = '.' not in filename or filename == ''
+    is_dir = '.' not in filename
 
     os.makedirs(parent, exist_ok=True)
     if is_dir:
+        os.makedirs(input_path, exist_ok=True)
         target_filename = '{}.{}'.format(datetime.datetime.now().strftime('%Y%m%d_%H%M%S_%f'), ext)
-        if filename == '':
-            checkpoint_path = os.path.join(parent, target_filename)
-        else:
-            os.makedirs(input_path, exist_ok=True)
-            checkpoint_path = os.path.join(input_path, target_filename)
+        checkpoint_path = os.path.join(input_path, target_filename)
     else:
         checkpoint_path = input_path
     
@@ -100,6 +99,8 @@ def parse_load_checkpoint_path(
 
     if input_path is None:
         return None
+    
+    input_path = input_path.strip().rstrip('/')
     
     if not os.path.exists(input_path):
         logger.warning('Checkpoint path was set but {} does not exist.'.format(input_path))

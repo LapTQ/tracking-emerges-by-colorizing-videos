@@ -8,6 +8,7 @@
 - Vision Transformer
 - Active learning, analyse scaling laws
 - Multi-loss
+- Use generative learning to compare with reduced loss
 - verify if SSL good for generalization
 - Add type checking
 - CI/CD

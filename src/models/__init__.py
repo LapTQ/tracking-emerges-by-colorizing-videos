@@ -6,18 +6,19 @@ ROOT_DIR = HERE.parent.parent
 
 sys.path.append(str(ROOT_DIR))
 
-import src as GLOBAL
 from src.utils.logger import parse_save_checkpoint_path, parse_load_checkpoint_path
-LOGGER = GLOBAL.LOGGER
 
 # ==================================================================================================
 
+import logging
 import torch
 from torch import nn
 import torch.nn.functional as F
 from .backbone import backbone_factory
 from .head import head_factory
 
+
+logger = logging.getLogger(__name__)
 
 
 def model_factory(
@@ -81,7 +82,6 @@ class Colorizer(nn.Module):
             self._product.checkpoint_path = checkpoint_path
 
             if checkpoint_path is not None:
-                checkpoint_path = checkpoint_path.strip()
                 self._product.load_checkpoint()
 
             product = self._product
@@ -178,7 +178,7 @@ class Colorizer(nn.Module):
         weight = torch.load(file_path)
         self.load_state_dict(weight)
 
-        LOGGER.info('Model loaded from {}.'.format(file_path))
+        logger.info('Model loaded from {}.'.format(file_path))
     
 
     def save_checkpoint(self):
@@ -191,7 +191,7 @@ class Colorizer(nn.Module):
         )
         
         torch.save(self.state_dict(), self.checkpoint_path)
-        LOGGER.info('Model saved to {}.'.format(self.checkpoint_path))
+        logger.info('Model saved at {}.'.format(self.checkpoint_path))
 
 
     

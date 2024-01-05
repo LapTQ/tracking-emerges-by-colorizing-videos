@@ -12,11 +12,13 @@ import src as GLOBAL
 
 import json
 import pytest
+import logging
 
-LOGGER = GLOBAL.LOGGER
+
+logger = logging.getLogger(__name__)
 
 
-# LOGGER.info('This is the loaded config:\n{}'.format(json.dumps(GLOBAL.CONFIG, indent=4)))
+# logger.info('This is the loaded config:\n{}'.format(json.dumps(GLOBAL.CONFIG, indent=4)))
 # key = input('Is the config correct? True [t] or False [f]: ')
 # assert key.lower().strip() == 't'
 

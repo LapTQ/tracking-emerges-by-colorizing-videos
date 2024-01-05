@@ -6,8 +6,6 @@ ROOT_DIR = HERE.parent
 
 sys.path.append(str(ROOT_DIR))
 
-import src as GLOBAL
-
 from src.datasets import dataset_factory
 from src.datasets.utils import custom_collate_fn
 from src.transforms import transform_factory

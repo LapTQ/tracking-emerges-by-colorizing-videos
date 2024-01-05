@@ -122,6 +122,7 @@ def test_model_shape(
         config_dataset_template,
         config_transform_template
 ):
+    # use smaller models for quick test
     config_model = {
         'backbone': {
             'module_name': 'resnet18',
@@ -218,21 +219,20 @@ def test_model_shape(
     
 def test_model_checkpoint(
         config_dataset_template,
-        config_transform_template
 ):
     # use smaller models for quick test
     config_model = {
         'backbone': {
             'module_name': 'resnet18',
             'kwargs': {
-                'mid_channels': [64, 64, 64, 64],
-                'mid_strides': [1, 2, 1, 1]
+                'mid_channels': [32, 32, 32, 32],
+                'mid_strides': [1, 2, 1, 2]
             }
         },
         'head': {
             'module_name': 'convnet3d',
             'kwargs': {
-                'mid_channels': 64,
+                'mid_channels': 32,
                 'out_channels': 16,
                 'dilations': [1, 2, 4, 8, 16]
             }
@@ -262,7 +262,7 @@ def test_model_checkpoint(
 
        
     # 1. checkpoint path is file
-    checkpoint_path  = 'checkpoints/model/last.pth'
+    checkpoint_path  = 'checkpoints/model/test_case/last.pth'
     parent, filename = os.path.split(checkpoint_path)
     os.system('rm -rf {}'.format(parent))
 
@@ -307,7 +307,7 @@ def test_model_checkpoint(
     assert len(os.listdir(parent)) == 1
 
     # 2. checkpoint path is directory
-    checkpoint_path  = 'checkpoints/model/'
+    checkpoint_path  = 'checkpoints/model/test_case/'
     os.system('rm -rf {}'.format(checkpoint_path))
 
     # 2.1. if directory does not exist, then file should not be created until being explicitly evoked.
@@ -338,7 +338,7 @@ def test_model_checkpoint(
     assert model.checkpoint_path == os.path.join(checkpoint_path, os.listdir(checkpoint_path)[0])
 
     # 2.3. if a file exists, but the model instance stays the same, then the file should be overwritten.
-    mtime = os.path.getmtime(checkpoint_path)
+    mtime = os.path.getmtime(os.path.join(checkpoint_path, os.listdir(checkpoint_path)[0]))
     model.save_checkpoint()
     assert len(os.listdir(checkpoint_path)) == 1
     assert mtime < os.path.getmtime(os.path.join(checkpoint_path, os.listdir(checkpoint_path)[0]))

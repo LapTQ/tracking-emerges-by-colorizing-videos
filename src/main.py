@@ -14,7 +14,7 @@ from src.utils.mics import set_seed, get_device
 
 # ==================================================================================================
 
-LOGGER = GLOBAL.LOGGER
+import logging
 from copy import deepcopy
 import torch
 import torch.nn.functional as F
@@ -28,6 +28,9 @@ import numpy as np
 import cv2
 import imgviz
 import wandb
+
+
+logger = logging.getLogger(__name__)
 
 
 def train():
@@ -80,7 +83,7 @@ def train():
         **config_model.get('kwargs', {}),
         checkpoint_path=config_training['checkpoint_path'],
     )
-    LOGGER.info('Model:\n{}'.format(model))
+    logger.info('Model:\n{}'.format(model))
 
     device = get_device(config_training['device'])
     model = model.to(device)
@@ -220,7 +223,7 @@ def train():
             ).item()
             running_acc += n_corrects
             if b_idx % verbose_step == verbose_step - 1:
-                LOGGER.info('[Epoch {}/{}][Batch {}/{}] train loss: {}, train acc: {}'.format(
+                logger.info('[Epoch {}/{}][Batch {}/{}] train loss: {}, train acc: {}'.format(
                     epoch + 1,
                     epochs,
                     b_idx + 1,
@@ -262,7 +265,7 @@ def train():
             ).item()
             running_acc += n_corrects
             if b_idx % verbose_step == verbose_step - 1:
-                LOGGER.info('[Epoch {}/{}][Batch {}/{}] val loss: {}, val acc: {}'.format(
+                logger.info('[Epoch {}/{}][Batch {}/{}] val loss: {}, val acc: {}'.format(
                     epoch + 1,
                     epochs,
                     b_idx + 1,
@@ -288,7 +291,7 @@ def train():
         val_loss /= len(val_dataloader)
         val_acc = round(val_acc / (len(val_dataloader) * H * W * batch_size // (n_references + 1)) * 100, 1)
 
-        LOGGER.info('[Epoch {}/{}] train loss: {}, val loss: {}, train acc: {}, val acc: {}, lr: {}'.format(
+        logger.info('[Epoch {}/{}] train loss: {}, val loss: {}, train acc: {}, val acc: {}, lr: {}'.format(
             epoch + 1,
             epochs,
             train_loss,
@@ -315,7 +318,7 @@ def train():
             target = cfg['kwargs']['target']
             assert target in ['train_loss', 'val_loss', 'train_acc', 'val_acc']
             if not callback.step(
-                target=train_loss if target == 'train_loss' \
+                value=train_loss if target == 'train_loss' \
                 else val_loss if target == 'val_loss' \
                 else train_acc if target == 'train_acc' \
                 else val_acc
@@ -325,7 +328,6 @@ def train():
         
         if callback_stop:
             break
-
     
     stop_show_running_batch = True
     

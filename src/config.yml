@@ -104,14 +104,12 @@ training:
   verbose_step: 3
   show_batch_queue_max_size: 3
   
-  
   wandb:
     api_key: e69d06fcc3d68400a0d96551a93e5b7521a3eef5
 
 
 prediction:
   device: cuda:0
-
 
 
 logging:

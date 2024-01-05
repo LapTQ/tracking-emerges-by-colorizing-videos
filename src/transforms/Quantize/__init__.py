@@ -7,18 +7,19 @@ ROOT_DIR = HERE.parent.parent.parent
 
 sys.path.append(str(ROOT_DIR))
 
-import src as GLOBAL
 from src.utils.logger import parse_save_checkpoint_path, parse_load_checkpoint_path
-LOGGER = GLOBAL.LOGGER
 
 # ==================================================================================================
 
+import logging
 from torch import nn
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import OneHotEncoder, LabelEncoder
 import pickle
-import os
 import numpy as np
+
+
+logger = logging.getLogger(__name__)
 
 
 EXPECTED_INPUT_SHAPE = {
@@ -59,7 +60,6 @@ class CustomTransform(nn.Module):
         self.is_fitted = False
 
         if self.checkpoint_path is not None:
-            self.checkpoint_path = self.checkpoint_path.strip()
             self.load_checkpoint()
     
 
@@ -69,7 +69,7 @@ class CustomTransform(nn.Module):
         self.model.fit(X)
         self.encoder.fit(self.model.labels_.reshape(*self._expected_input_shape))
         self.is_fitted = True
-        LOGGER.info('Model {} and encoder {} fitted.'.format(self.model, self.encoder))
+        logger.info('Model {} and encoder {} fitted.'.format(self.model, self.encoder))
 
         if self.checkpoint_path is not None:
             self.save_checkpoint()
@@ -105,7 +105,7 @@ class CustomTransform(nn.Module):
         self.model = loaded_model
         self.encoder = loaded_encoder
         self.is_fitted = True
-        LOGGER.info('Quantize model loaded successfully:\n{}'.format(str(self)))
+        logger.info('Quantize model loaded successfully:\n{}'.format(str(self)))
 
     
     def save_checkpoint(self):
@@ -129,7 +129,7 @@ class CustomTransform(nn.Module):
                 f
             )
         
-        LOGGER.info('New checkpoint for {} is saved to {}'.format(str(self), self.checkpoint_path))
+        logger.info('New checkpoint for {} is saved to {}'.format(str(self), self.checkpoint_path))
 
     
     def forward(

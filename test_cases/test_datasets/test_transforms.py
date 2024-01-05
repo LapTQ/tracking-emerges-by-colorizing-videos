@@ -459,7 +459,7 @@ def test_Quantize_checkpoint():
     assert not os.path.exists(checkpoint_path)
 
 
-    os.system('rm -rf {}'.format(checkpoint_path))
+    os.system('rm -rf {}'.format(parent))
 
 
 if __name__ == '__main__':

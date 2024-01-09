@@ -92,12 +92,10 @@ def train():
         model.parameters(),
         **config_training['optimizer']['kwargs']
     )
-    schedulers = [
-        eval(scheduler['module_name'])(
-            optimizer,
-            **scheduler['kwargs']
-        ) for scheduler in config_training.get('schedulers', [])
-    ]
+    scheduler = eval(config_training['scheduler']['module_name'])(
+        optimizer,
+        **config_training['scheduler']['kwargs']
+    )
     callbacks = [
         callback_factory(
             module_name=callback['module_name'],
@@ -309,8 +307,7 @@ def train():
             'lr': optimizer.param_groups[0]['lr']
         })
         
-        for scheduler in schedulers:
-            scheduler.step(train_loss)
+        scheduler.step(train_loss)
 
         model.save_checkpoint()
         

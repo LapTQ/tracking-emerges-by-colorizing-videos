@@ -86,12 +86,12 @@ training:
       lr: 0.1
       momentum: 0.9
       nesterov: True
-  schedulers:
-    - module_name: ReduceLROnPlateau
-      kwargs:
-        mode: min
-        patience: 2
-        verbose: True
+  scheduler:
+    module_name: ReduceLROnPlateau
+    kwargs:
+      mode: min
+      patience: 2
+      verbose: True
   callbacks:
     - module_name: earlystopping
       kwargs:

@@ -11,22 +11,16 @@ from src.utils.dataset import setup_dataset_and_transform
 from src.models import model_factory
 from src.callbacks import callback_factory
 from src.utils.mics import set_seed, get_device
+from src.engines.train import Trainer
 
 # ==================================================================================================
 
 import logging
 from copy import deepcopy
-import torch
 import torch.nn.functional as F
 from torch.nn import CrossEntropyLoss
 from torch.optim import Adam, SGD
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-from queue import Queue
-from time import sleep
-from threading import Thread
-import numpy as np
-import cv2
-import imgviz
 import wandb
 
 
@@ -113,222 +107,28 @@ def train():
         project='Tracking emerges by colorizing videos',
         config=config,
     )
-    wandb.watch(model, log_freq=1, log='all')
 
-    queue = Queue(maxsize=config_training['show_batch_queue_max_size'])
-    stop_show_running_batch = False
-    def _show_running_batch(in_queue):
-        assert config_transform['label'][-2]['module_name'] == 'Quantize', \
+    trainer = Trainer(
+        model=model,
+        train_dataloader=train_dataloader,
+        val_dataloader=val_dataloader,
+        device=device,
+        n_references=n_references,
+        optimizer=optimizer,
+        criterion=criterion,
+    )
+
+    assert config_transform['label'][-2]['module_name'] == 'Quantize', \
             'Assuming the second last label transform to be Quantize.'
-        quantize_transform = label_transform.transforms[-2]
-
-        table = wandb.Table(
-            columns=['epoch', 'batch', 'true_color', 'predicted_color'],
-        )
-
-        while not stop_show_running_batch:
-            if in_queue.empty():
-                sleep(0.1)
-                continue
-
-            _ = in_queue.get()
-            epoch = _['epoch']
-            b_idx = _['b_idx']
-            X = _['X']
-            true_color = _['true_color']
-            predicted_color = _['predicted_color']  # (B, C, H, W)
-
-            batch_size = X.shape[0]
-
-            X = X[[i for i in range(batch_size) if i % (n_references + 1) == n_references]] # (B, C, H, W)
-            X = (X.permute(0, 2, 3, 1).cpu().numpy() * 255).astype('uint8')  # (B, H, W, C)
-            true_color = true_color.permute(0, 2, 3, 1).cpu().numpy()  # (B, H, W, C)
-            predicted_color = F.one_hot(
-                torch.argmax(predicted_color, dim=1),
-                num_classes=predicted_color.shape[1]
-            ).cpu().numpy()   # (B, H, W, C)
-
-            true_color = quantize_transform.invert_transform_batch(true_color).astype('uint8')
-            predicted_color = quantize_transform.invert_transform_batch(predicted_color).astype('uint8')
-
-            tile = [
-                    cv2.cvtColor(
-                        np.stack(
-                            [
-                                X[i, :, :, 0],
-                                *[cv2.resize(color[i, :, :, _], X.shape[1:-1][::-1]) for _ in range(color.shape[-1])]
-                            ],
-                            axis=2
-                        ),
-                        cv2.COLOR_LAB2BGR
-                    ) for i in range(len(X)) for color in [true_color, predicted_color]
-            ]
-
-            for i in range(len(tile) // 2):
-                table.add_data(
-                    epoch,
-                    b_idx,
-                    wandb.Image(tile[2*i]),
-                    wandb.Image(tile[2*i+1])
-                )
-                wandb.log({"Predictions_table": table}, commit=False)
-
-            tile = imgviz.tile(
-                tile,
-                border=(255, 255, 255),
-                border_width=5
-            )
-            cv2.imwrite('temp.jpg', tile)
-            # window_title = 'Validation images'
-            # cv2.namedWindow(window_title, cv2.WINDOW_NORMAL)
-            # cv2.imshow(window_title, tile)
-            # key = cv2.waitKey(1)
-            # if key == ord('q'):
-            #     exit(0)      
-        
-        cv2.destroyAllWindows()
-
-    show_val_thread = Thread(target=_show_running_batch, args=(queue,))
-    show_val_thread.start()
-
-    callback_stop = False
-    for epoch in range(epochs):
-
-        # training
-        running_loss = 0.0
-        running_acc = 0
-        train_loss = 0.0
-        train_acc = 0
-        model.train()
-        for b_idx, batch in enumerate(train_dataloader):
-            X, Y = batch
-            X = X.to(device)
-            Y = Y.to(device)
-            batch_size, _, H, W = Y.shape
-            true_color = Y[[i for i in range(batch_size) if i % (n_references + 1) == n_references]]
-            ref_colors = Y[[i for i in range(batch_size) if i % (n_references + 1) != n_references]]
-            ref_colors = ref_colors.float()
-
-            optimizer.zero_grad()
-            predicted_color = model(X, ref_colors)
-            loss = criterion(predicted_color, true_color)
-            loss.backward()
-            optimizer.step()
-
-            running_loss += loss.item()
-            n_corrects = torch.sum(
-                torch.argmax(predicted_color, dim=1) == torch.argmax(true_color, dim=1)
-            ).item()
-            running_acc += n_corrects
-            if b_idx % verbose_step == verbose_step - 1:
-                logger.info('[Epoch {}/{}][Batch {}/{}] train loss: {}, train acc: {}'.format(
-                    epoch + 1,
-                    epochs,
-                    b_idx + 1,
-                    len(train_dataloader),
-                    running_loss / verbose_step,
-                    round(running_acc / (verbose_step * H * W) / (batch_size // (n_references + 1)) * 100, 1)
-                ))
-                running_loss = 0.0
-                running_acc = 0
-            train_loss += loss.item()
-            train_acc += n_corrects
-            
-            wandb.log({"loss": loss})
-            
-        train_loss /= len(train_dataloader)
-        train_acc = round(train_acc / (len(train_dataloader) * H * W * batch_size // (n_references + 1)) * 100, 1)
-
-        # validation
-        running_loss = 0.0
-        running_acc = 0
-        val_loss = 0.0
-        val_acc = 0
-        model.eval()
-        for b_idx, batch in enumerate(val_dataloader):
-            X, Y = batch
-            X = X.to(device)
-            Y = Y.to(device)
-            batch_size, _, H, W = Y.shape
-            true_color = Y[[i for i in range(batch_size) if i % (n_references + 1) == n_references]]
-            ref_colors = Y[[i for i in range(batch_size) if i % (n_references + 1) != n_references]]
-            ref_colors = ref_colors.float()
-
-            predicted_color = model(X, ref_colors)
-            loss = criterion(predicted_color, true_color)
-
-            running_loss += loss.item()
-            n_corrects = torch.sum(
-                torch.argmax(predicted_color, dim=1) == torch.argmax(true_color, dim=1)
-            ).item()
-            running_acc += n_corrects
-            if b_idx % verbose_step == verbose_step - 1:
-                logger.info('[Epoch {}/{}][Batch {}/{}] val loss: {}, val acc: {}'.format(
-                    epoch + 1,
-                    epochs,
-                    b_idx + 1,
-                    len(val_dataloader),
-                    running_loss / verbose_step,
-                    round(running_acc / (verbose_step * H * W) / (batch_size // (n_references + 1)) * 100, 1)
-                ))
-                running_loss = 0.0
-                running_acc = 0
-            val_loss += loss.item()
-            val_acc += n_corrects
-
-            if queue.full():
-                queue.get()
-            queue.put({
-                'epoch': epoch,
-                'b_idx': b_idx,
-                'X': X,
-                'true_color': true_color,
-                'predicted_color': predicted_color
-            })
-        
-        val_loss /= len(val_dataloader)
-        val_acc = round(val_acc / (len(val_dataloader) * H * W * batch_size // (n_references + 1)) * 100, 1)
-
-        logger.info('[Epoch {}/{}] train loss: {}, val loss: {}, train acc: {}, val acc: {}, lr: {}'.format(
-            epoch + 1,
-            epochs,
-            train_loss,
-            val_loss,
-            train_acc,
-            val_acc,
-            optimizer.param_groups[0]['lr']
-        ))
-
-        wandb.log({
-            'train_loss': train_loss,
-            'val_loss': val_loss,
-            'train_acc': train_acc,
-            'val_acc': val_acc,
-            'lr': optimizer.param_groups[0]['lr']
-        })
-        
-        scheduler.step(train_loss)
-
-        model.save_checkpoint()
-        
-        for callback, cfg in zip(callbacks, config_training['callbacks']):
-            target = cfg['kwargs']['target']
-            assert target in ['train_loss', 'val_loss', 'train_acc', 'val_acc']
-            if not callback.step(
-                value=train_loss if target == 'train_loss' \
-                else val_loss if target == 'val_loss' \
-                else train_acc if target == 'train_acc' \
-                else val_acc
-            ):
-                callback_stop = True
-                break
-        
-        if callback_stop:
-            break
     
-    stop_show_running_batch = True
-    
-    wandb.finish()
+    trainer.train(
+        epochs=epochs,
+        scheduler=scheduler,
+        callbacks=callbacks,
+        callback_targets=[cfg['kwargs']['target'] for cfg in config_training['callbacks']],
+        quantize_transform=label_transform.transforms[-2],
+        verbose_step=verbose_step,
+    )
 
 
 if __name__ == '__main__':

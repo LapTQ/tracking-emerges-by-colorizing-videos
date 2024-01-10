@@ -149,12 +149,14 @@ class Trainer:
             ).item()
             running_acc += n_corrects
             if b_idx % verbose_step == verbose_step - 1:
-                logger.info('[Epoch {}/{}][Batch {}/{}] train loss: {}, train acc: {}'.format(
+                logger.info('[Epoch {}/{}][Batch {}/{}] {} loss: {}, {} acc: {}'.format(
                     epoch + 1,
                     epochs,
                     b_idx + 1,
                     len(dataloader),
+                    mode,
                     running_loss / verbose_step,
+                    mode,
                     round(running_acc / (verbose_step * H * W) / (batch_size // (self.n_references + 1)) * 100, 1)
                 ))
                 running_loss = 0.0

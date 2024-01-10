@@ -66,7 +66,7 @@ class Trainer:
                 epochs,
                 train_loss,
                 val_loss,
-                val_loss,
+                train_info,
                 val_acc,
                 self.optimizer.param_groups[0]['lr']
             ))

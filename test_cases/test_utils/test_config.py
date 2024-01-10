@@ -58,6 +58,7 @@ def test_key():
             assert config_quantize['kwargs']['encoder'] == 'OneHotEncoder', \
                 'Quantize must be OneHot because the model expects it to be.'
             assert config_quantize['kwargs']['n_fit'] >= 96
+            assert config_quantize['kwargs']['n_fit'] <= config_train['kwargs']['n_samples']
         
     if 'model' in GLOBAL.CONFIG:
         assert 'backbone' in GLOBAL.CONFIG['model']

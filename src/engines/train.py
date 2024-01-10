@@ -142,6 +142,7 @@ class Trainer:
 
             if mode == 'train':
                 self.optimizer.zero_grad()
+            
             predicted_color = self.model(X, ref_colors)
             loss = self.criterion(predicted_color, true_color)
 
@@ -182,7 +183,6 @@ class Trainer:
                     predicted_color=predicted_color,
                     quantize_transform=quantize_transform
                 )
-
             
         epoch_loss /= len(dataloader)
         epoch_acc = round(epoch_acc / (len(dataloader) * H * W * batch_size // (self.n_references + 1)) * 100, 1)

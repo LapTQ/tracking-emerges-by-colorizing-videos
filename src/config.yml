@@ -7,7 +7,7 @@ dataset:
     kwargs:
       dataset_dir: data/k700-2020
       n_references: 3
-      n_samples: 96
+      n_samples: 120
       batch_size: 16
       shuffle: True
       frame_rate: 6

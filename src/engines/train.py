@@ -38,6 +38,7 @@ class Trainer:
 
         assert len(callbacks) == len(callback_targets)
 
+        self.model.to(self.device)
         wandb.watch(self.model, log_freq=1, log='all')
 
         callback_stop = False
@@ -124,7 +125,12 @@ class Trainer:
         running_acc = 0
         epoch_loss = 0.0
         epoch_acc = 0
-        self.model.train()
+
+        if mode == 'train':
+            self.model.train()
+        elif mode == 'val':
+            self.model.eval()
+
         for b_idx, batch in enumerate(dataloader):
             X, Y = batch
             X = X.to(self.device)

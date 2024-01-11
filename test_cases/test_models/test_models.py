@@ -140,6 +140,7 @@ def test_model_shape(
             }
         },
         'kwargs': {
+            'activation': 'mish',
             'use_softmax': True
         }
     }
@@ -238,6 +239,7 @@ def test_model_checkpoint(
             }
         },
         'kwargs': {
+            'activation': 'leaky_relu',
             'use_softmax': True
         }
     }

@@ -73,6 +73,7 @@ model:
       out_channels: 64
       dilations: [1, 2, 4, 8, 16]
   kwargs: 
+    activation: leaky_relu
     use_softmax: True
 
 

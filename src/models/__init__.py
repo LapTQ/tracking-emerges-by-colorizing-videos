@@ -61,19 +61,22 @@ class Colorizer(nn.Module):
             # parse kwargs
             backbone_kwargs = kwargs['backbone']
             head_kwargs = kwargs['head']
+            activation = kwargs['activation']
             use_softmax = kwargs['use_softmax']
             checkpoint_path = kwargs.get('checkpoint_path', None)
 
             self._product.backbone = backbone_factory(
                 module_name=self.backbone_name
             )(
-                **backbone_kwargs
+                **backbone_kwargs,
+                activation=activation
             )
 
             self._product.head = head_factory(
                 module_name=self.head_name
             )(
-                **head_kwargs
+                **head_kwargs,
+                activation=activation
             )
 
             assert 'n_references' in head_kwargs

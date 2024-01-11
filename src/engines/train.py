@@ -176,8 +176,6 @@ class Trainer:
 
             if mode == 'val':
                 self._show_running_batch(
-                    epoch=epoch,
-                    batch_id=b_idx,
                     X=X,
                     true_color=true_color,
                     predicted_color=predicted_color,
@@ -197,16 +195,10 @@ class Trainer:
             self,
             **kwargs
     ):
-        epoch = kwargs['epoch']
-        batch_id = kwargs['batch_id']
         X = kwargs['X']
         true_color = kwargs['true_color']
         predicted_color = kwargs['predicted_color'] # (B, C, H, W)
         quantize_transform = kwargs['quantize_transform']
-
-        table = wandb.Table(
-            columns=['epoch', 'batch', 'true_color', 'predicted_color'],
-        )
 
         batch_size = X.shape[0]
 
@@ -234,27 +226,12 @@ class Trainer:
                 ) for i in range(len(X)) for color in [true_color, predicted_color]
         ]
 
-        for i in range(len(tile) // 2):
-            table.add_data(
-                epoch,
-                batch_id,
-                wandb.Image(tile[2*i]),
-                wandb.Image(tile[2*i+1])
-            )
-            wandb.log({"Predictions_table": table}, commit=True)
-
         tile = imgviz.tile(
             tile,
             border=(255, 255, 255),
             border_width=5
         )
         cv2.imwrite('temp.jpg', tile)
-        # window_title = 'Validation images'
-        # cv2.namedWindow(window_title, cv2.WINDOW_NORMAL)
-        # cv2.imshow(window_title, tile)
-        # key = cv2.waitKey(1)
-        # if key == ord('q'):
-        #     exit(0)
 
 
 

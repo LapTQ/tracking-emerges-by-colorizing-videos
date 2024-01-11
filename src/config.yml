@@ -78,7 +78,7 @@ model:
 
 training:
   device: auto    # 'auto' or 'cuda:0' or 'cpu'
-  epochs: 15
+  epochs: 200
   loss: CrossEntropyLoss
   optimizer:
     module_name: SGD
@@ -90,13 +90,13 @@ training:
     module_name: ReduceLROnPlateau
     kwargs:
       mode: min
-      patience: 2
+      patience: 10
       verbose: True
   callbacks:
     - module_name: earlystopping
       kwargs:
         target: val_loss  # 'train_loss', 'val_loss', 'train_acc', 'val_acc'
-        patience: 5
+        patience: 50
         mode: min
         min_delta: 0
   checkpoint_path: checkpoints/model/Colorizer

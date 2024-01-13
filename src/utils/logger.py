@@ -73,7 +73,7 @@ def parse_save_checkpoint_path(
     os.makedirs(parent, exist_ok=True)
     if is_dir:
         os.makedirs(input_path, exist_ok=True)
-        target_filename = 'checkpoint.{}'.format(datetime.datetime.now().strftime('%Y%m%d_%H%M%S_%f'), ext)
+        target_filename = '{}.{}'.format(datetime.datetime.now().strftime('%Y%m%d_%H%M%S_%f'), ext)
         checkpoint_path = os.path.join(input_path, target_filename)
     else:
         checkpoint_path = input_path

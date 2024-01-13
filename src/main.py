@@ -59,7 +59,7 @@ def train():
 
     for _, __ in config_transform.items():
         for _ in __:
-            if _['kwargs']['require_fit']:
+            if _.get('kwargs', {}).get('require_fit', False):
                 _['kwargs']['save_checkpoint_path'] = os.path.join(config['run_dir'], 'checkpoints/transform/', _['module_name'])
 
     set_seed()
@@ -71,6 +71,10 @@ def train():
     train_dataloader = _['dataloader']
     label_transform = _['label_transform']
 
+    for _, __ in config_transform.items():
+        for _ in __:
+            if _.get('kwargs', {}).get('require_fit', False):
+                _['kwargs']['load_checkpoint_path'] = _['kwargs']['save_checkpoint_path']
     _ = setup_dataset_and_transform(
         config_dataset=config_val_dataset,
         config_input_transform=config_transform['input'],

@@ -229,7 +229,7 @@ def test_Quantize_semantic(encoder_name, n_clusters, expected_dim, expected_dtyp
                     }
                 },
                 'encoder': encoder_name,
-                'checkpoint_path': None,
+                'load_checkpoint_path': None,
             }
         }
     ]
@@ -348,7 +348,7 @@ def test_Quantize_checkpoint():
                     }
                 },
                 'encoder': 'LabelEncoder',
-                'checkpoint_path': None,
+                'load_checkpoint_path': None,
             }
         }
     ]
@@ -364,11 +364,14 @@ def test_Quantize_checkpoint():
     )
 
     # 1. checkpoint path is file
-    checkpoint_path = 'checkpoints/transform/Quantize/test_case/checkpoint.pkl'
-    parent, filename = os.path.split(checkpoint_path)
+    load_checkpoint_path = 'temp/test_cases/checkpoints/transform/Quantize/load/checkpoint.pkl'
+    save_checkpoint_path = 'temp/test_cases/checkpoints/transform/Quantize/save/checkpoint.pkl'
+    os.system('rm -rf {}'.format(os.path.split(load_checkpoint_path)[0]))
+    parent, filename = os.path.split(save_checkpoint_path)
     os.system('rm -rf {}'.format(parent))
 
-    config_transform[-1]['kwargs']['checkpoint_path'] = checkpoint_path
+    config_transform[-1]['kwargs']['load_checkpoint_path'] = load_checkpoint_path
+    config_transform[-1]['kwargs']['save_checkpoint_path'] = save_checkpoint_path
 
     _ = setup_dataset(
         config_dataset=config_dataset,
@@ -381,19 +384,20 @@ def test_Quantize_checkpoint():
     # 1.1. if parent directory does not exist, then both parent and file should only be created after fitting
     assert not os.path.exists(parent)
     quantize_transform.fit(Y_to_fit)
-    assert os.path.exists(checkpoint_path)
+    assert os.path.exists(save_checkpoint_path)
 
     # 1.2. if parent directory exists, but checkpoint file does not exist, then file should only be created after fitting
-    os.system('rm -rf {}'.format(checkpoint_path))
+    os.system('rm -rf {}'.format(save_checkpoint_path))
     quantize_transform.fit(Y_to_fit)
-    assert os.path.exists(checkpoint_path)
+    assert os.path.exists(save_checkpoint_path)
 
     # 1.3. if checkpoint file exists, it should be overwritten
-    mtime = os.path.getmtime(checkpoint_path)
+    mtime = os.path.getmtime(save_checkpoint_path)
     quantize_transform.fit(Y_to_fit)
-    assert mtime < os.path.getmtime(checkpoint_path)
+    assert mtime < os.path.getmtime(save_checkpoint_path)
 
     # 1.4. if checkpoint file exists, the Quantize object should be fitted after initialization
+    config_transform[-1]['kwargs']['load_checkpoint_path'] = save_checkpoint_path
     _ = setup_dataset(
         config_dataset=config_dataset,
         config_input_transform=None,
@@ -402,12 +406,16 @@ def test_Quantize_checkpoint():
     label_transform = _['label_transform']
     quantize_transform = label_transform.transforms[-1]
     assert quantize_transform.is_fitted
+    config_transform[-1]['kwargs']['load_checkpoint_path'] = load_checkpoint_path
 
     # 2. checkpoint path is directory
-    checkpoint_path = 'checkpoints/transform/Quantize/test_case/'
-    os.system('rm -rf {}'.format(checkpoint_path))
+    load_checkpoint_path = 'temp/test_cases/checkpoints/transform/Quantize/load'
+    save_checkpoint_path = 'temp/test_cases/checkpoints/transform/Quantize/save'
+    os.system('rm -rf {}'.format(load_checkpoint_path))
+    os.system('rm -rf {}'.format(save_checkpoint_path))
 
-    config_transform[-1]['kwargs']['checkpoint_path'] = checkpoint_path
+    config_transform[-1]['kwargs']['load_checkpoint_path'] = load_checkpoint_path
+    config_transform[-1]['kwargs']['save_checkpoint_path'] = save_checkpoint_path
 
     _ = setup_dataset(
         config_dataset=config_dataset,
@@ -418,19 +426,19 @@ def test_Quantize_checkpoint():
     quantize_transform = label_transform.transforms[-1]
 
     # 2.1. if directory does not exist, then it and a file should only be created after fitting
-    assert not os.path.exists(checkpoint_path)
+    assert not os.path.exists(save_checkpoint_path)
     quantize_transform.fit(Y_to_fit)
-    assert os.path.exists(checkpoint_path)
-    assert len(os.listdir(checkpoint_path)) == 1
+    assert os.path.exists(save_checkpoint_path)
+    assert len(os.listdir(save_checkpoint_path)) == 1
 
     # 2.2. if directory exists, but checkpoint file does not exist, then file should only be created after fitting
-    os.system('rm -rf {}/*'.format(checkpoint_path))
+    os.system('rm -rf {}/*'.format(save_checkpoint_path))
     quantize_transform.fit(Y_to_fit)
-    assert len(os.listdir(checkpoint_path)) == 1
+    assert len(os.listdir(save_checkpoint_path)) == 1
 
     # 2.3. if a file exists, but the Quantize instance stays the same, then the file should be overwritten
     quantize_transform.fit(Y_to_fit)
-    assert len(os.listdir(checkpoint_path)) == 1
+    assert len(os.listdir(save_checkpoint_path)) == 1
 
     # 2.4. if a file exists, but the Quantize instance changes, then a new file should be created
     _ = setup_dataset(
@@ -441,11 +449,12 @@ def test_Quantize_checkpoint():
     label_transform = _['label_transform']
     quantize_transform = label_transform.transforms[-1]
     quantize_transform.fit(Y_to_fit)
-    assert len(os.listdir(checkpoint_path)) == 2
+    assert len(os.listdir(save_checkpoint_path)) == 2
 
     # 3. checkpoint path is None
-    os.system('rm -rf {}'.format(checkpoint_path))
-    config_transform[-1]['kwargs']['checkpoint_path'] = None
+    os.system('rm -rf {}'.format(save_checkpoint_path))
+    config_transform[-1]['kwargs']['load_checkpoint_path'] = None
+    config_transform[-1]['kwargs']['save_checkpoint_path'] = None
 
     _ = setup_dataset(
         config_dataset=config_dataset,
@@ -456,7 +465,8 @@ def test_Quantize_checkpoint():
     quantize_transform = label_transform.transforms[-1]
 
     quantize_transform.fit(Y_to_fit)
-    assert not os.path.exists(checkpoint_path)
+    assert not os.path.exists(load_checkpoint_path)
+    assert not os.path.exists(save_checkpoint_path)
 
 
     os.system('rm -rf {}'.format(parent))

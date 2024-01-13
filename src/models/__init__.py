@@ -63,7 +63,8 @@ class Colorizer(nn.Module):
             head_kwargs = kwargs['head']
             activation = kwargs['activation']
             use_softmax = kwargs['use_softmax']
-            checkpoint_path = kwargs.get('checkpoint_path', None)
+            load_checkpoint_path = kwargs.get('load_checkpoint_path', None)
+            save_checkpoint_path = kwargs.get('save_checkpoint_path', None)
 
             self._product.backbone = backbone_factory(
                 module_name=self.backbone_name
@@ -82,9 +83,10 @@ class Colorizer(nn.Module):
             assert 'n_references' in head_kwargs
             self._product.n_references = head_kwargs['n_references']
             self._product.use_softmax = use_softmax
-            self._product.checkpoint_path = checkpoint_path
+            self._product.load_checkpoint_path = load_checkpoint_path
+            self._product.save_checkpoint_path = save_checkpoint_path
 
-            if checkpoint_path is not None:
+            if load_checkpoint_path is not None:
                 self._product.load_checkpoint()
 
             product = self._product
@@ -167,11 +169,11 @@ class Colorizer(nn.Module):
 
 
     def load_checkpoint(self):
-        if self.checkpoint_path is None:
+        if self.load_checkpoint_path is None:
             raise ValueError('Checkpoint argument is set to None, so loading checkpoint is not allowed.')
         
         file_path = parse_load_checkpoint_path(
-            input_path=self.checkpoint_path,
+            input_path=self.load_checkpoint_path,
             ext='pth',
         )
 
@@ -185,16 +187,16 @@ class Colorizer(nn.Module):
     
 
     def save_checkpoint(self):
-        if self.checkpoint_path is None:
+        if self.save_checkpoint_path is None:
             raise ValueError('Checkpoint argument is set to None, so saving checkpoint is not allowed.')
         
-        self.checkpoint_path = parse_save_checkpoint_path(
-            input_path=self.checkpoint_path,
+        self.save_checkpoint_path = parse_save_checkpoint_path(
+            input_path=self.save_checkpoint_path,
             ext='pth',
         )
         
-        torch.save(self.state_dict(), self.checkpoint_path)
-        logger.info('Model saved at {}.'.format(self.checkpoint_path))
+        torch.save(self.state_dict(), self.save_checkpoint_path)
+        logger.info('Model saved at {}.'.format(self.save_checkpoint_path))
 
 
     

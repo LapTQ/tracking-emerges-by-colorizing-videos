@@ -45,7 +45,8 @@ class CustomTransform(nn.Module):
         # parse kwargs
         self.model = kwargs['model']
         self.encoder = kwargs['encoder']
-        self.checkpoint_path = kwargs.get('checkpoint_path', None)
+        self.load_checkpoint_path = kwargs.get('load_checkpoint_path', None)
+        self.save_checkpoint_path = kwargs.get('save_checkpoint_path', None)
 
         self.n_clusters = kwargs['model']['kwargs']['n_clusters']
         self.model_cls = eval(self.model['module_name'])
@@ -59,7 +60,7 @@ class CustomTransform(nn.Module):
 
         self.is_fitted = False
 
-        if self.checkpoint_path is not None:
+        if self.load_checkpoint_path is not None:
             self.load_checkpoint()
     
 
@@ -71,7 +72,7 @@ class CustomTransform(nn.Module):
         self.is_fitted = True
         logger.info('Model {} and encoder {} fitted.'.format(self.model, self.encoder))
 
-        if self.checkpoint_path is not None:
+        if self.save_checkpoint_path is not None:
             self.save_checkpoint()
     
 
@@ -83,11 +84,11 @@ class CustomTransform(nn.Module):
 
     
     def load_checkpoint(self):
-        if self.checkpoint_path is None:
+        if self.load_checkpoint_path is None:
             raise ValueError('Checkpoint argument is set to None, so loading checkpoint is not allowed.')
         
         file_path = parse_load_checkpoint_path(
-            input_path=self.checkpoint_path,
+            input_path=self.load_checkpoint_path,
             ext='pkl',
         )
 
@@ -112,15 +113,15 @@ class CustomTransform(nn.Module):
         if not self.is_fitted:
             raise ValueError('Model is not fitted yet.')
 
-        if self.checkpoint_path is None:
+        if self.save_checkpoint_path is None:
             raise ValueError('Checkpoint argument is set to None, so saving checkpoint is not allowed.')
         
-        self.checkpoint_path = parse_save_checkpoint_path(
-            input_path=self.checkpoint_path,
+        self.save_checkpoint_path = parse_save_checkpoint_path(
+            input_path=self.save_checkpoint_path,
             ext='pkl',
         )
         
-        with open(self.checkpoint_path, 'wb') as f:
+        with open(self.save_checkpoint_path, 'wb') as f:
             pickle.dump(
                 {
                     'model': self.model,
@@ -129,7 +130,7 @@ class CustomTransform(nn.Module):
                 f
             )
         
-        logger.info('New checkpoint for {} is saved to {}'.format(str(self), self.checkpoint_path))
+        logger.info('New checkpoint for {} is saved to {}'.format(str(self), self.save_checkpoint_path))
 
     
     def forward(

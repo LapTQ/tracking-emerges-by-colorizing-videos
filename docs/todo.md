@@ -1,4 +1,3 @@
-- separate train and val to different functions
 - Refine the logging: log message, log visualization progress, checkpoint... all to the same folder? should I??? (because the saving checkpoint can be quite different)
 
 - Add spatial info to the head

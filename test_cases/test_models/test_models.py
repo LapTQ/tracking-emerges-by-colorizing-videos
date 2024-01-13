@@ -100,7 +100,7 @@ def config_transform_template():
                     },
                 },
                 'encoder': 'OneHotEncoder',
-                'checkpoint_path': None
+                'load_checkpoint_path': None
             }
         },
         {
@@ -264,8 +264,8 @@ def test_model_checkpoint(
 
        
     # 1. checkpoint path is file
-    checkpoint_path  = 'checkpoints/model/test_case/last.pth'
-    parent, filename = os.path.split(checkpoint_path)
+    save_checkpoint_path  = 'temp/test_cases/checkpoints/model/last.pth'
+    parent, filename = os.path.split(save_checkpoint_path)
     os.system('rm -rf {}'.format(parent))
 
     # 1.1. if parent directory does not exist, then file should not be created until being explicitly evoked.
@@ -273,11 +273,11 @@ def test_model_checkpoint(
         **config_model['module_name']
     )(
         **config_model.get('kwargs', {}),
-        checkpoint_path=checkpoint_path
+        save_checkpoint_path=save_checkpoint_path
     )
     assert not os.path.exists(parent)
     model.save_checkpoint()
-    assert os.path.exists(checkpoint_path)
+    assert os.path.exists(save_checkpoint_path)
 
     # 1.2. if parent directory exists, but checkpoint file does not exists, then file should not be created until being explicitly evoked.
     os.system('rm -rf {}'.format(parent))
@@ -286,76 +286,76 @@ def test_model_checkpoint(
         **config_model['module_name']
     )(
         **config_model.get('kwargs', {}),
-        checkpoint_path=checkpoint_path
+        save_checkpoint_path=save_checkpoint_path
     )
-    assert not os.path.exists(checkpoint_path)
+    assert not os.path.exists(save_checkpoint_path)
     model.save_checkpoint()
-    assert os.path.exists(checkpoint_path)
+    assert os.path.exists(save_checkpoint_path)
 
     # 1.3. if checkpoint file exists, it should be overwritten.
-    mtime = os.path.getmtime(checkpoint_path)
+    mtime = os.path.getmtime(save_checkpoint_path)
     model = model_factory(
         **config_model['module_name']
     )(
         **config_model.get('kwargs', {}),
-        checkpoint_path=checkpoint_path
+        save_checkpoint_path=save_checkpoint_path
     )
-    assert mtime == os.path.getmtime(checkpoint_path)
+    assert mtime == os.path.getmtime(save_checkpoint_path)
     model.save_checkpoint()
-    new_mtime = os.path.getmtime(checkpoint_path)
+    new_mtime = os.path.getmtime(save_checkpoint_path)
     assert mtime < new_mtime
     model.save_checkpoint()
-    assert new_mtime < os.path.getmtime(checkpoint_path)
+    assert new_mtime < os.path.getmtime(save_checkpoint_path)
     assert len(os.listdir(parent)) == 1
 
     # 2. checkpoint path is directory
-    checkpoint_path  = 'checkpoints/model/test_case/'
-    os.system('rm -rf {}'.format(checkpoint_path))
+    save_checkpoint_path  = 'temp/test_cases/checkpoints/model/'
+    os.system('rm -rf {}'.format(save_checkpoint_path))
 
     # 2.1. if directory does not exist, then file should not be created until being explicitly evoked.
     model = model_factory(
         **config_model['module_name']
     )(
         **config_model.get('kwargs', {}),
-        checkpoint_path=checkpoint_path
+        save_checkpoint_path=save_checkpoint_path
     )
-    assert not os.path.exists(checkpoint_path)
+    assert not os.path.exists(save_checkpoint_path)
     model.save_checkpoint()
-    assert os.path.exists(checkpoint_path)
-    assert len(os.listdir(checkpoint_path)) == 1
-    assert model.checkpoint_path == os.path.join(checkpoint_path, os.listdir(checkpoint_path)[0])
+    assert os.path.exists(save_checkpoint_path)
+    assert len(os.listdir(save_checkpoint_path)) == 1
+    assert model.save_checkpoint_path == os.path.join(save_checkpoint_path, os.listdir(save_checkpoint_path)[0])
 
     # 2.2. if directory exists, but checkpoint file does not exists, then file should not be created until being explicitly evoked.
-    os.system('rm -rf {}'.format(checkpoint_path))
-    os.makedirs(checkpoint_path)
+    os.system('rm -rf {}'.format(save_checkpoint_path))
+    os.makedirs(save_checkpoint_path)
     model = model_factory(
         **config_model['module_name']
     )(
         **config_model.get('kwargs', {}),
-        checkpoint_path=checkpoint_path
+        save_checkpoint_path=save_checkpoint_path
     )
-    assert len(os.listdir(checkpoint_path)) == 0
+    assert len(os.listdir(save_checkpoint_path)) == 0
     model.save_checkpoint()
-    assert len(os.listdir(checkpoint_path)) == 1
-    assert model.checkpoint_path == os.path.join(checkpoint_path, os.listdir(checkpoint_path)[0])
+    assert len(os.listdir(save_checkpoint_path)) == 1
+    assert model.save_checkpoint_path == os.path.join(save_checkpoint_path, os.listdir(save_checkpoint_path)[0])
 
     # 2.3. if a file exists, but the model instance stays the same, then the file should be overwritten.
-    mtime = os.path.getmtime(os.path.join(checkpoint_path, os.listdir(checkpoint_path)[0]))
+    mtime = os.path.getmtime(os.path.join(save_checkpoint_path, os.listdir(save_checkpoint_path)[0]))
     model.save_checkpoint()
-    assert len(os.listdir(checkpoint_path)) == 1
-    assert mtime < os.path.getmtime(os.path.join(checkpoint_path, os.listdir(checkpoint_path)[0]))
-    assert model.checkpoint_path == os.path.join(checkpoint_path, os.listdir(checkpoint_path)[0])
+    assert len(os.listdir(save_checkpoint_path)) == 1
+    assert mtime < os.path.getmtime(os.path.join(save_checkpoint_path, os.listdir(save_checkpoint_path)[0]))
+    assert model.save_checkpoint_path == os.path.join(save_checkpoint_path, os.listdir(save_checkpoint_path)[0])
 
     # 2.4. if a file exists, but the model instance changes, then a new file should be created.
     model = model_factory(
         **config_model['module_name']
     )(
         **config_model.get('kwargs', {}),
-        checkpoint_path=checkpoint_path
+        save_checkpoint_path=save_checkpoint_path
     )
     model.save_checkpoint()
-    assert len(os.listdir(checkpoint_path)) == 2
-    assert model.checkpoint_path == os.path.join(checkpoint_path, sorted(os.listdir(checkpoint_path))[-1])
+    assert len(os.listdir(save_checkpoint_path)) == 2
+    assert model.save_checkpoint_path == os.path.join(save_checkpoint_path, sorted(os.listdir(save_checkpoint_path))[-1])
 
     os.system('rm -rf {}'.format(parent))
 

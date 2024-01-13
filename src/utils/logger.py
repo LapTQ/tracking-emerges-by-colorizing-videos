@@ -9,8 +9,8 @@ def load_logger(
 ):
     level = kwargs.get('level', logging.INFO)
     format = kwargs.get('format', '%(asctime)s\t|%(funcName)20s |%(lineno)d\t|%(levelname)8s |%(message)s')
-    handlers = kwargs.get('handlers', [sys.stdout])
-    datetime_format = kwargs.get('datetime_format', '%Y%m%d_%H%M%S')
+    directory = kwargs.get('directory', None)
+    handlers = kwargs.get('handlers', 'stdout')
 
     if level == 'DEBUG':
         level = logging.DEBUG
@@ -26,18 +26,16 @@ def load_logger(
         raise ValueError('Invalid logging level: {}'.format(level))
 
     handlers_ = []
-    for handler, value in handlers.items():
-        if handler == 'file':
-            os.makedirs(value, exist_ok=True)
-            log_fname = datetime.datetime.now().strftime('{}.log'.format(datetime_format))
-            log_fpath = os.path.join(value, log_fname)  # assuming value is a directory
+    if not isinstance(handlers, list):
+        handlers = [handlers]
+    for handler in handlers:
+        if handler == 'stdout':
+            handlers_.append(logging.StreamHandler(sys.stdout))
+        elif isinstance(handler, str):
+            assert directory is not None, 'Logging directory must be specified when using file handler.'
+            assert os.path.isdir(directory), 'Logging directory must be a directory.'
+            log_fpath = os.path.join(directory, handler)
             handlers_.append(logging.FileHandler(log_fpath))
-        elif handler == 'stream':
-            if value == 'stdout':
-                value = sys.stdout
-            else:
-                raise ValueError('Invalid logging stream: {}'.format(value))
-            handlers_.append(logging.StreamHandler(value))
         else:
             raise ValueError('Invalid logging handler: {}'.format(handler))
     handlers = handlers_
@@ -75,7 +73,7 @@ def parse_save_checkpoint_path(
     os.makedirs(parent, exist_ok=True)
     if is_dir:
         os.makedirs(input_path, exist_ok=True)
-        target_filename = '{}.{}'.format(datetime.datetime.now().strftime('%Y%m%d_%H%M%S_%f'), ext)
+        target_filename = 'checkpoint.{}'.format(datetime.datetime.now().strftime('%Y%m%d_%H%M%S_%f'), ext)
         checkpoint_path = os.path.join(input_path, target_filename)
     else:
         checkpoint_path = input_path

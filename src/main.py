@@ -22,6 +22,7 @@ from torch.nn import CrossEntropyLoss
 from torch.optim import Adam, SGD
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 import wandb
+import os
 
 
 logger = logging.getLogger(__name__)
@@ -54,6 +55,12 @@ def train():
     config_model['kwargs']['backbone']['in_channels'] = 1
     config_model['kwargs']['head']['n_references'] = n_references
     config_model['kwargs']['head']['in_channels'] = config_model['backbone']['kwargs']['mid_channels'][-1]
+    config_training['save_checkpoint_path'] = os.path.join(config['run_dir'], 'checkpoints/model/Colorizer')
+
+    for _, __ in config_transform.items():
+        for _ in __:
+            if _['kwargs']['require_fit']:
+                _['kwargs']['save_checkpoint_path'] = os.path.join(config['run_dir'], 'checkpoints/transform/', _['module_name'])
 
     set_seed()
     _ = setup_dataset_and_transform(
@@ -75,7 +82,8 @@ def train():
         **config_model['module_name'],
     )(
         **config_model.get('kwargs', {}),
-        checkpoint_path=config_training['checkpoint_path'],
+        load_checkpoint_path=config_training['load_checkpoint_path'],
+        save_checkpoint_path=config_training['save_checkpoint_path'],
     )
     logger.info('Model:\n{}'.format(model))
 
@@ -95,7 +103,7 @@ def train():
             module_name=callback['module_name'],
         )(
             model=model,
-            checkpoint_path=config_training['checkpoint_path'],
+            save_checkpoint_path=config_training['save_checkpoint_path'],
             **callback['kwargs']
         ) for callback in config_training.get('callbacks', [])
     ]

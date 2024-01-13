@@ -1,6 +1,8 @@
 # paths in config.yml are either an absolute path or relative to the repo directory
 # path to checkpoint should be path to the parent dir (get the latest file inside) or a specific checkpoint file
 
+run_dir: runs
+
 dataset:
   train:
     module_name: fake
@@ -55,7 +57,7 @@ transform:
             kwargs:
               n_clusters: 16
           encoder: OneHotEncoder
-          checkpoint_path: checkpoints/transform/Quantize
+          load_checkpoint_path: checkpoints/transform/Quantize
       - module_name: v2ToImage
           
 
@@ -100,7 +102,7 @@ training:
         patience: 50
         mode: min
         min_delta: 0
-  checkpoint_path: checkpoints/model/Colorizer
+  load_checkpoint_path: checkpoints/model/Colorizer
   
   verbose_step: 3
   show_batch_queue_max_size: 3
@@ -117,6 +119,5 @@ logging:
   level: INFO
   format: " %(asctime)23s | %(module)10s | %(funcName)20s | %(lineno)5d | %(levelname)8s | %(message)s"
   handlers:
-    file: logs   # directory to save log files
-    stream: stdout
-  datetime_format: '%Y%m%d_%H%M%S'
+    - log.txt
+    - stdout

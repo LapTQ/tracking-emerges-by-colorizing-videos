@@ -34,6 +34,7 @@ def model():
             }
         },
         'kwargs': {
+            'activation': 'leaky_relu',
             'use_softmax': True
         }
     }
@@ -93,17 +94,17 @@ def test_earlystopping(
         }
     }
 
-    checkpoint_path = 'checkpoints/callbacks/earlystopping/test_case/'
+    save_checkpoint_path = 'temp/test_cases/checkpoints/callbacks/earlystopping/'
 
     callback = callback_factory(
         module_name=config_callback['module_name']
     )(
         model=model,
-        checkpoint_path=checkpoint_path,
+        save_checkpoint_path=save_checkpoint_path,
         **config_callback.get('kwargs', {})
     )
 
-    os.system(f'rm -rf {checkpoint_path}')
+    os.system(f'rm -rf {save_checkpoint_path}')
 
     for i, (value, count, returned_value, modified) in enumerate(zip(step_values, counters, returns, checkpoint_modified)):
         assert returned_value == callback.step(
@@ -112,25 +113,25 @@ def test_earlystopping(
         print(i, mode, min_delta, value)
         assert callback.counter == count
         
-        assert len(os.listdir(checkpoint_path)) == 1
+        assert len(os.listdir(save_checkpoint_path)) == 1
         if i == 0:
-            mtime = os.path.getmtime(os.path.join(checkpoint_path, os.listdir(checkpoint_path)[0]))
+            mtime = os.path.getmtime(os.path.join(save_checkpoint_path, os.listdir(save_checkpoint_path)[0]))
             continue
 
         previous_mtime = mtime
-        mtime = os.path.getmtime(os.path.join(checkpoint_path, os.listdir(checkpoint_path)[0]))
+        mtime = os.path.getmtime(os.path.join(save_checkpoint_path, os.listdir(save_checkpoint_path)[0]))
         assert (mtime > previous_mtime) == modified
     
-    os.system(f'rm -rf {checkpoint_path}')
+    os.system(f'rm -rf {save_checkpoint_path}')
 
     # in context with real training
     # 1. if checkpoint_path is directory
-    model.checkpoint_path = checkpoint_path
+    model.save_checkpoint_path = save_checkpoint_path
     callback = callback_factory(
         module_name=config_callback['module_name']
     )(
         model=model,
-        checkpoint_path=checkpoint_path,
+        save_checkpoint_path=save_checkpoint_path,
         **config_callback.get('kwargs', {})
     )
 
@@ -142,27 +143,27 @@ def test_earlystopping(
         print(i, mode, min_delta, value)
         assert callback.counter == count
         
-        assert len(os.listdir(checkpoint_path)) == 2
+        assert len(os.listdir(save_checkpoint_path)) == 2
         if i == 0:
-            mtime = os.path.getmtime(os.path.join(checkpoint_path, sorted(os.listdir(checkpoint_path))[-1]))
+            mtime = os.path.getmtime(os.path.join(save_checkpoint_path, sorted(os.listdir(save_checkpoint_path))[-1]))
             continue
 
         previous_mtime = mtime
-        mtime = os.path.getmtime(os.path.join(checkpoint_path, sorted(os.listdir(checkpoint_path))[-1]))
+        mtime = os.path.getmtime(os.path.join(save_checkpoint_path, sorted(os.listdir(save_checkpoint_path))[-1]))
         assert (mtime > previous_mtime) == modified
     
-    os.system(f'rm -rf {checkpoint_path}')
+    os.system(f'rm -rf {save_checkpoint_path}')
 
     # 2. if checkpoint_path is file
-    os.makedirs(checkpoint_path, exist_ok=True)
+    os.makedirs(save_checkpoint_path, exist_ok=True)
     model.save_checkpoint()
-    checkpoint_path = model.checkpoint_path
-    parent, name = os.path.split(checkpoint_path)
+    save_checkpoint_path = model.save_checkpoint_path
+    parent, name = os.path.split(save_checkpoint_path)
     callback = callback_factory(
         module_name=config_callback['module_name']
     )(
         model=model,
-        checkpoint_path=checkpoint_path,
+        save_checkpoint_path=save_checkpoint_path,
         **config_callback.get('kwargs', {})
     )
 
@@ -185,12 +186,6 @@ def test_earlystopping(
     
     os.system(f'rm -rf {parent}')
         
-
-
-
-
-
-
 
 if __name__ == '__main__':
     pytest.main([__file__])

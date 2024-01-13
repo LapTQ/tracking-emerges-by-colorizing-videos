@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Download directories vars
-datasets_dir="datasets"
+datasets_dir="data"
 root_dl="${datasets_dir}/k700-2020"
 root_dl_targz="${datasets_dir}/k700-2020_targz"
 max_train_tar=100

@@ -29,13 +29,13 @@ class CustomCallback:
         patience = kwargs.get('patience')
         mode = kwargs.get('mode')
         min_delta = kwargs.get('min_delta', 0)
-        checkpoint_path = kwargs.get('checkpoint_path', None)
+        save_checkpoint_path = kwargs.get('save_checkpoint_path', None)
 
         self.model = model
         self.patience = patience
         self.mode = mode
         self.min_delta = min_delta
-        self.checkpoint_path = checkpoint_path
+        self.save_checkpoint_path = save_checkpoint_path
         self.best = None
         self.counter = 0
         self._first_time = True
@@ -74,27 +74,27 @@ class CustomCallback:
     def save_checkpoint(
             self,
     ):
-        if self.checkpoint_path is None:
+        if self.save_checkpoint_path is None:
             return
         
         file_path = parse_save_checkpoint_path(
-            input_path=self.checkpoint_path,
+            input_path=self.save_checkpoint_path,
             ext='pth'
         )
 
         if self._first_time:
             parent, name = os.path.split(file_path)
             basename, ext = os.path.splitext(name)
-            self.checkpoint_path = os.path.join(
+            self.save_checkpoint_path = os.path.join(
                 parent,
                 f'{basename}_best{ext}'
             )
             self._first_time = False
         else:
-            self.checkpoint_path = file_path
+            self.save_checkpoint_path = file_path
 
-        torch.save(self.model.state_dict(), self.checkpoint_path)
-        logger.info('EarlyStopping: Save checkpoint at {}'.format(self.checkpoint_path))
+        torch.save(self.model.state_dict(), self.save_checkpoint_path)
+        logger.info('EarlyStopping: Save checkpoint at {}'.format(self.save_checkpoint_path))
 
 
         

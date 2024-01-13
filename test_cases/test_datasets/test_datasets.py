@@ -100,7 +100,7 @@ def config_transform_template():
                     },
                 },
                 'encoder': 'OneHotEncoder',
-                'checkpoint_path': None
+                'load_checkpoint_path': None
             }
         },
         {

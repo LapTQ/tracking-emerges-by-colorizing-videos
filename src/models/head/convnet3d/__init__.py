@@ -53,9 +53,6 @@ class CustomHead(nn.Module):
         dilations = kwargs.get('dilations', [1, 2, 4, 8, 16])
         activation = kwargs['activation']
 
-        # # add 2 channels for spatial information
-        # in_channels += 2
-
         self.layer1 = BasicBlock(in_channels, mid_channels, dilations[0], activation=activation)
         self.layer2 = BasicBlock(mid_channels, mid_channels, dilations[1], activation=activation)
         self.layer3 = BasicBlock(mid_channels, mid_channels, dilations[2], activation=activation)
@@ -81,10 +78,6 @@ class CustomHead(nn.Module):
     ):
         B, C, H, W = x.shape
         x = x.reshape(-1, self.n_references + 1, C, H, W)
-        # spatial_info = torch.stack(
-        #     torch.meshgrid(torch.arange(H), torch.arange(W), indexing='ij')
-        # )
-        # spatial_info = 2 * spatial_info / torch.tensor([[[H - 1]], [[W - 1]]]) - 1
         x = x.permute(0, 2, 1, 3, 4)
         
         x = self.layer1(x)

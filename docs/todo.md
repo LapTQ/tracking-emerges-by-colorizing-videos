@@ -1,11 +1,8 @@
-- Refine the logging: log message, log visualization progress, checkpoint... all to the same folder? should I??? (because the saving checkpoint can be quite different)
-
-- Add spatial info to the head
 - kinetic dataset
 
-- accelerate training (such as multi-threading for train and val?)
+- finetune and verify if SSL good for generalization
 
-- verify if SSL good for generalization
+- accelerate training (such as multi-threading for train and val?)
 
 - Vision Transformer
 

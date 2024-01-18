@@ -28,14 +28,30 @@ CONFIG_TRANSFORM = GLOBAL.CONFIG['transform']
 
 
 @pytest.fixture
-def config_dataset_template():
+def config_dataset_fake():
     config_dataset = deepcopy(CONFIG_DATASET['train'])
 
     config_dataset['module_name'] = 'fake'
     config_dataset['kwargs']['n_references'] = 3
     config_dataset['kwargs']['n_samples'] = 1024
     config_dataset['kwargs']['batch_size'] = 32
+
+    assert config_dataset['kwargs']['batch_size'] % (config_dataset['kwargs']['n_references'] + 1) == 0
+
+    return config_dataset
+
+
+@pytest.fixture
+def config_dataset_kinetics700():
+    config_dataset = deepcopy(CONFIG_DATASET['train'])
+
+    config_dataset['module_name'] = 'kinetics700'
+    config_dataset['kwargs']['dataset_dir'] = 'data/k700-2020/train'
+    config_dataset['kwargs']['n_references'] = 3
+    config_dataset['kwargs']['n_samples'] = 1024
+    config_dataset['kwargs']['batch_size'] = 16
     config_dataset['kwargs']['shuffle'] = True
+    config_dataset['kwargs']['frame_rate'] = 6
 
     assert config_dataset['kwargs']['batch_size'] % (config_dataset['kwargs']['n_references'] + 1) == 0
 
@@ -117,11 +133,19 @@ def config_transform_template():
     return config_transform
 
 
+@pytest.mark.parametrize(
+        'config_dataset_template',
+        [
+            'config_dataset_fake',
+            'config_dataset_kinetics700'
+        ]
+)
 def test_dataset_output(
         config_dataset_template,
-        config_transform_template
+        config_transform_template,
+        request
 ):
-    config_dataset = deepcopy(config_dataset_template)
+    config_dataset = deepcopy(request.getfixturevalue(config_dataset_template))
     config_transform = deepcopy(config_transform_template)
 
     # get value for convenience
@@ -157,11 +181,19 @@ def test_dataset_output(
     )
 
 
+@pytest.mark.parametrize(
+        'config_dataset_template,',
+        [
+            'config_dataset_fake',
+            'config_dataset_kinetics700'
+        ]
+)
 def test_custom_collate_fn(
         config_dataset_template,
-        config_transform_template
+        config_transform_template,
+        request
 ):
-    config_dataset = deepcopy(config_dataset_template)
+    config_dataset = deepcopy(request.getfixturevalue(config_dataset_template))
     config_transform = deepcopy(config_transform_template)
 
     # get value for convenience
@@ -198,10 +230,12 @@ def test_custom_collate_fn(
     )
 
 @pytest.mark.parametrize(
-        'encoder_name,n_clusters,expected_dim',
+        'config_dataset_template,encoder_name,n_clusters,expected_dim',
         [
-            ('LabelEncoder', 16, 1),
-            ('OneHotEncoder', 16, 16)
+            ('config_dataset_fake', 'LabelEncoder', 16, 1),
+            ('config_dataset_fake', 'OneHotEncoder', 16, 16),
+            ('config_dataset_kinetics700', 'LabelEncoder', 16, 1),
+            ('config_dataset_kinetics700', 'OneHotEncoder', 16, 16),
         ]
 )
 def test_dataloader_output(
@@ -209,9 +243,10 @@ def test_dataloader_output(
         config_transform_template,
         encoder_name,
         n_clusters,
-        expected_dim
+        expected_dim,
+        request
 ):
-    config_dataset = deepcopy(config_dataset_template)
+    config_dataset = deepcopy(request.getfixturevalue(config_dataset_template))
     config_transform = deepcopy(config_transform_template)
 
     config_transform['label'][3]['kwargs']['encoder'] = encoder_name
@@ -280,6 +315,7 @@ def test_dataloader_output(
     cv2.imshow(window_title, tile)
     key = cv2.waitKey(0)
     assert chr(key).lower().strip() == 't'
+    cv2.destroyAllWindows()
 
 
 if __name__ == '__main__':

@@ -78,7 +78,7 @@ def setup_dataset(
 
     batch_size = config_dataset['kwargs']['batch_size']
     n_references = config_dataset['kwargs']['n_references']
-    shuffle = config_dataset['kwargs']['shuffle']
+    shuffle = config_dataset['kwargs'].get('shuffle', False)
 
     config_dataset['kwargs']['input_transform'] = input_transform
     config_dataset['kwargs']['label_transform'] = label_transform

@@ -35,7 +35,6 @@ def config_dataset_template():
     config_dataset['kwargs']['n_references'] = 3
     config_dataset['kwargs']['n_samples'] = 1024
     config_dataset['kwargs']['batch_size'] = 16
-    config_dataset['kwargs']['shuffle'] = True
 
     assert config_dataset['kwargs']['batch_size'] % (config_dataset['kwargs']['n_references'] + 1) == 0
 

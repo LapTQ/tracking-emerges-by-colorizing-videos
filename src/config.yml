@@ -4,25 +4,36 @@
 run_dir: runs
 
 dataset:
+  # train:
+  #   module_name: fake
+  #   kwargs:
+  #     n_references: 3
+  #     n_samples: 120
+  #     batch_size: 16
+  # val:
+  #   module_name: fake
+  #   kwargs:
+  #     n_references: 3
+  #     n_samples: 24
+  #     batch_size: 16
   train:
-    module_name: fake
+    module_name: kinetics700
     kwargs:
-      dataset_dir: data/k700-2020
+      dataset_dir: data/k700-2020/train
       n_references: 3
       n_samples: 120
       batch_size: 16
       shuffle: True
       frame_rate: 6
   val:
-    module_name: fake
+    module_name: kinetics700
     kwargs:
-      dataset_dir: data/k700-2020
+      dataset_dir: data/k700-2020/val
       n_references: 3
       n_samples: 24
       batch_size: 16
       shuffle: False
-      frame_rate: 6
-  predict:
+      frame_rate: 3
 
 
 transform:

@@ -28,9 +28,42 @@ CONFIG_DATASET = {
         'n_references': 3,
         'n_samples': 1024,
         'batch_size': 32,
-        'shuffle': True,
     }
 }
+
+@pytest.fixture
+def config_dataset_fake():
+    config_dataset = {
+        'module_name': 'fake',
+        'kwargs': {
+            'n_references': 3,
+            'n_samples': 1024,
+            'batch_size': 32,
+        }
+    }
+
+    assert config_dataset['kwargs']['batch_size'] % (config_dataset['kwargs']['n_references'] + 1) == 0
+
+    return config_dataset
+
+
+@pytest.fixture
+def config_dataset_kinetics700():
+    config_dataset = {
+        'module_name': 'kinetics700',
+        'kwargs': {
+            'dataset_dir': 'data/k700-2020/train',
+            'n_references': 3,
+            'n_samples': 1024,
+            'batch_size': 16,
+            'shuffle': True,
+            'frame_rate': 6,
+        }
+    }
+
+    assert config_dataset['kwargs']['batch_size'] % (config_dataset['kwargs']['n_references'] + 1) == 0
+
+    return config_dataset
 
 
 def visual_check(
@@ -61,7 +94,14 @@ def visual_check(
     return key
 
 
-def test_cv2Resize():
+@pytest.mark.parametrize(
+        'config_dataset_template',
+        [
+            'config_dataset_fake',
+            'config_dataset_kinetics700',
+        ]
+)
+def test_cv2Resize(config_dataset_template, request):
     config_transform = [
         {
             'module_name': 'cv2Resize',
@@ -71,7 +111,7 @@ def test_cv2Resize():
         }
     ]
 
-    config_dataset = deepcopy(CONFIG_DATASET)
+    config_dataset = request.getfixturevalue(config_dataset_template)
 
     _ = setup_dataset(
         config_dataset=config_dataset,
@@ -87,13 +127,20 @@ def test_cv2Resize():
     
     key = visual_check(
         batch_Y=batch_Y,
-        window_title='Check cv2Resize transform with (H, W)={}. True [t] or False [f]?'\
-            .format(config_transform[0]['kwargs']['size']),
+        window_title='Check cv2Resize transform with (H, W)={}, dataset={}. True [t] or False [f]?'\
+            .format(config_transform[0]['kwargs']['size'], config_dataset_template),
     )
     assert chr(key).lower().strip() == 't'
 
 
-def test_cvtColor():
+@pytest.mark.parametrize(
+        'config_dataset_template',
+        [
+            'config_dataset_fake',
+            'config_dataset_kinetics700',
+        ]
+)
+def test_cvtColor(config_dataset_template, request):
     config_transform = [
         {
             'module_name': 'cv2cvtColor',
@@ -103,7 +150,7 @@ def test_cvtColor():
         }
     ]
 
-    config_dataset = deepcopy(CONFIG_DATASET)
+    config_dataset = request.getfixturevalue(config_dataset_template)
 
     _ = setup_dataset(
         config_dataset=config_dataset,
@@ -117,21 +164,24 @@ def test_cvtColor():
         
     key = visual_check(
         batch_Y=batch_Y,
-        window_title='Check cv2cvtColor transform with code={}. True [t] or False [f]?'\
-            .format(config_transform[0]['kwargs']['code']),
+        window_title='Check cv2cvtColor transform with code={}, dataset={}. True [t] or False [f]?'\
+            .format(config_transform[0]['kwargs']['code'], config_dataset_template),
     )
     assert chr(key).lower().strip() == 't'
 
 
 @pytest.mark.parametrize(
-        'channels,expected_dim,show', 
+        'config_dataset_template,channels,expected_dim,show', 
         [
-            ([1, 2], 2, True), 
-            ([0], 1, False), 
-            (0, 1, False)
+            ('config_dataset_fake', [1, 2], 2, True), 
+            ('config_dataset_fake', [0], 1, False), 
+            ('config_dataset_fake', 0, 1, False),
+            ('config_dataset_kinetics700', [1, 2], 2, True), 
+            ('config_dataset_kinetics700', [0], 1, False), 
+            ('config_dataset_kinetics700', 0, 1, False),
         ]
 )
-def test_ExtractChannel(channels, expected_dim, show):
+def test_ExtractChannel(config_dataset_template, channels, expected_dim, show, request):
     config_transform = [
         {
             'module_name': 'cv2cvtColor',
@@ -147,7 +197,7 @@ def test_ExtractChannel(channels, expected_dim, show):
         }
     ]
 
-    config_dataset = deepcopy(CONFIG_DATASET)
+    config_dataset = request.getfixturevalue(config_dataset_template)
 
     _ = setup_dataset(
         config_dataset=config_dataset,
@@ -182,22 +232,25 @@ def test_ExtractChannel(channels, expected_dim, show):
             
         key = visual_check(
             batch_Y=batch_Y,
-            window_title='Check ExtractChannel transform with channels={}. True [t] or False [f]?'\
-                .format(config_transform[1]['kwargs']['channels']),
+            window_title='Check ExtractChannel transform with channels={}, dataset={}. True [t] or False [f]?'\
+                .format(config_transform[1]['kwargs']['channels'], config_dataset_template),
         )
         assert chr(key).lower().strip() == 't'
 
 
 @pytest.mark.parametrize(
-        'encoder_name,n_clusters,expected_dim,expected_dtype,expected_max_value,close_cv2', 
+        'config_dataset_template, encoder_name,n_clusters,expected_dim,expected_dtype,expected_max_value,close_cv2', 
         [
-            ('LabelEncoder', 16, 1, torch.int64, 15, False), 
-            ('OneHotEncoder', 16, 16, torch.float64, 1, False),
-            ('OneHotEncoder', 2, 2, torch.float64, 1, True)
+            ('config_dataset_fake', 'LabelEncoder', 16, 1, torch.int64, 15, False), 
+            ('config_dataset_fake', 'OneHotEncoder', 16, 16, torch.float64, 1, False),
+            ('config_dataset_fake', 'OneHotEncoder', 2, 2, torch.float64, 1, False),
+            ('config_dataset_kinetics700', 'LabelEncoder', 16, 1, torch.int64, 15, False), 
+            ('config_dataset_kinetics700', 'OneHotEncoder', 16, 16, torch.float64, 1, False),
+            ('config_dataset_kinetics700', 'OneHotEncoder', 2, 2, torch.float64, 1, True)
         ]
 )
-def test_Quantize_semantic(encoder_name, n_clusters, expected_dim, expected_dtype, expected_max_value, close_cv2):
-    config_dataset = deepcopy(CONFIG_DATASET)
+def test_Quantize_semantic(config_dataset_template, encoder_name, n_clusters, expected_dim, expected_dtype, expected_max_value, close_cv2, request):
+    config_dataset = request.getfixturevalue(config_dataset_template)
     config_transform = [
         {
             'module_name': 'cv2Resize',
@@ -279,10 +332,11 @@ def test_Quantize_semantic(encoder_name, n_clusters, expected_dim, expected_dtyp
         
     key = visual_check(
         batch_Y=batch_Y,
-        window_title='Check Quantize transform with n_clusters={} and {}. True [t] or False [f]?'\
+        window_title='Check Quantize transform with n_clusters={} and {}, dataset={}. True [t] or False [f]?'\
             .format(
                 n_clusters,
-                encoder_name
+                encoder_name,
+                config_dataset_template
             ),
     )
     assert chr(key).lower().strip() == 't'
@@ -316,7 +370,7 @@ def get_fit_data(
     return Y_to_fit
     
 
-def test_Quantize_checkpoint():
+def test_Quantize_checkpoint(config_dataset_fake):
     config_transform = [
         {
             'module_name': 'cv2Resize',
@@ -356,7 +410,7 @@ def test_Quantize_checkpoint():
     # assuming that Quantize is the last transform
     assert config_transform[-1]['module_name'] == 'Quantize'
 
-    config_dataset = deepcopy(CONFIG_DATASET)
+    config_dataset = config_dataset_fake
     Y_to_fit = get_fit_data(
         config_dataset=config_dataset,
         config_label_transform=config_transform[:-1],   # exclude Quantize

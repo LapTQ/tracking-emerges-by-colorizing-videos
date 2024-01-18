@@ -62,7 +62,7 @@ transform:
       - module_name: Quantize
         kwargs:
           require_fit: True
-          n_fit: 96
+          n_fit: 200
           model:
             module_name: KMeans
             kwargs:

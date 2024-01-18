@@ -22,15 +22,6 @@ from copy import deepcopy
 import os
 
 
-CONFIG_DATASET = {
-    'module_name': 'fake',
-    'kwargs': {
-        'n_references': 3,
-        'n_samples': 1024,
-        'batch_size': 32,
-    }
-}
-
 @pytest.fixture
 def config_dataset_fake():
     config_dataset = {

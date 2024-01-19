@@ -108,43 +108,5 @@ class CustomDataset(Dataset):
 
         inputs = torch.stack(inputs, dim=0)
         labels = torch.stack(labels, dim=0)
-
-        print(inputs.shape, labels.shape)
         
         return inputs, labels
-    
-
-# if __name__ == '__main__':
-#     video_paths = []
-#     for video_path in Path('/source/data/k700-2020/train').glob('**/*.mp4'):
-#         video_paths.append(str(video_path))
-#     cap = cv2.VideoCapture(np.random.choice(video_paths))
-    
-#     n_references = 3
-#     frame_rate = 6
-#     def _sample_frames(cap):
-#         fps = cap.get(cv2.CAP_PROP_FPS)
-#         step_size = int(fps / frame_rate)
-        
-#         if cap.get(cv2.CAP_PROP_FRAME_COUNT) < n_references * step_size + 1:
-#             return False, *([None] * n_references), None
-        
-#         ret = []
-#         running_idx = np.random.randint(cap.get(cv2.CAP_PROP_FRAME_COUNT) - n_references * step_size - 1)
-#         i = 0
-#         while True:
-#             print(running_idx, i)
-#             if len(ret) == n_references + 1:
-#                 break
-#             _, frame = cap.read()
-#             if i == running_idx:
-#                 ret.append(frame)
-#                 print(i)
-#                 running_idx += step_size
-#             i += 1
-        
-#         return True, *ret
-
-#     print(_sample_frames(cap))
-    
-

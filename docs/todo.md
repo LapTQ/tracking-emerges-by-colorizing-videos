@@ -1,10 +1,8 @@
-- kinetic dataset
-
 - finetune and verify if SSL good for generalization
 
-- accelerate training (such as multi-threading for train and val?)
-
 - Vision Transformer
+
+- accelerate training (such as multi-threading for train and val?)
 
 - Active learning (part of data-centric?), analyse scaling laws, study model scaling conventions
 - Multi-loss

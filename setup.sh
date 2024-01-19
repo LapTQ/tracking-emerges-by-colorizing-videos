@@ -4,9 +4,9 @@
 datasets_dir="data"
 root_dl="${datasets_dir}/k700-2020"
 root_dl_targz="${datasets_dir}/k700-2020_targz"
-max_train_tar=100
-max_val_tar=10
-max_test_tar=10
+max_train_tar=10
+max_val_tar=1
+max_test_tar=1
 
 # Make root directories
 [ ! -d $root_dl ] && mkdir $datasets_dir

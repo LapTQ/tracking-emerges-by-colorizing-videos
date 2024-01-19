@@ -142,6 +142,10 @@ def setup_dataset_and_transform(
         )
         dummy_dataloader = _['dataloader']
 
+
+        if n_batch_fit > len(dummy_dataloader):
+            raise ValueError('Number of sample required to fit exceed the number of samples in the dataset')
+
         Y_to_fit = []
         batch_iter = iter(dummy_dataloader)
         for _ in range(n_batch_fit):

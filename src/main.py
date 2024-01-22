@@ -11,6 +11,7 @@ from src.utils.dataset import setup_dataset_and_transform
 from src.models import model_factory
 from src.callbacks import callback_factory
 from src.utils.mics import set_seed, get_device
+from src.utils.logger import load_logger
 from src.engines.train import Trainer
 
 # ==================================================================================================
@@ -143,5 +144,16 @@ def train():
     )
 
 
-if __name__ == '__main__':
+def main():
+
+    assert not os.path.exists(GLOBAL.RUN_DIR), 'Run directory already exists: {}'.format(GLOBAL.RUN_DIR)
+    os.makedirs(GLOBAL.RUN_DIR)
+    load_logger(
+        **GLOBAL.CONFIG['logging']
+    )
+
     train()
+
+
+if __name__ == '__main__':
+    main()

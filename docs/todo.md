@@ -2,6 +2,8 @@
 
 - Vision Transformer
 
+- integrate with laptq_utils
+
 - accelerate training (such as nworkers,... multi-threading for train and val?)
 
 - Active learning (part of data-centric?), analyse scaling laws, study model scaling conventions

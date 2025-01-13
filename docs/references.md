@@ -1,0 +1,2 @@
+
+1. [TRANSFORMING AND AUGMENTING IMAGES](https://pytorch.org/vision/main/transforms.html#v1-or-v2): guideline on how to transform and augment images using PyTorch, with new `torchvision.transforms.v2`.

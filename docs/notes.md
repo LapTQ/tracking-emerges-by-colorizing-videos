@@ -1,0 +1,2 @@
+- Pay attention to the initialization of weights w.r.t. the activation function used in the network. For example when given `F.leaky_relu`, after specifying the weights initialization with `nn.init.kaiming_normal_`, the gradient and weights seem to be more meaningful.
+- Pay attention

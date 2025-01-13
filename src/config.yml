@@ -1,0 +1,134 @@
+# paths in config.yml are either an absolute path or relative to the repo directory
+# path to checkpoint should be path to the parent dir (get the latest file inside) or a specific checkpoint file
+
+run_dir: runs
+
+dataset:
+  # train:
+  #   module_name: fake
+  #   kwargs:
+  #     n_references: 3
+  #     n_samples: 120
+  #     batch_size: 16
+  # val:
+  #   module_name: fake
+  #   kwargs:
+  #     n_references: 3
+  #     n_samples: 24
+  #     batch_size: 16
+  train:
+    module_name: kinetics700
+    kwargs:
+      dataset_dir: data/k700-2020/train
+      n_references: 3
+      n_samples: 120
+      batch_size: 16
+      shuffle: True
+      frame_rate: 3
+  val:
+    module_name: kinetics700
+    kwargs:
+      dataset_dir: data/k700-2020/val
+      n_references: 3
+      n_samples: 24
+      batch_size: 16
+      shuffle: False
+      frame_rate: 3
+
+
+transform:
+  train:
+    input:
+      - module_name: v2ToImage        # torchvision.transforms.v2.ToImage
+      - module_name: v2ToDtype        # torchvision.transforms.v2.ToDtype
+        kwargs:
+          dtype: torch.float32        # must be torch native dtype
+          scale: True
+      - module_name: v2Resize         # torchvision.transforms.v2.Resize
+        kwargs:
+          size: [256, 256]            # [height, width]
+          antialias: True
+      - module_name: v2Grayscale      # torchvision.transforms.v2.Grayscale
+    label:
+      - module_name: cv2Resize
+        kwargs:
+          size: [32, 32]              # [height, width]
+      - module_name: cv2cvtColor
+        kwargs:
+          code: cv2.COLOR_BGR2LAB
+      - module_name: ExtractChannel
+        kwargs:
+          channels: [1, 2]
+      - module_name: Quantize
+        kwargs:
+          require_fit: True
+          n_fit: 120
+          model:
+            module_name: KMeans
+            kwargs:
+              n_clusters: 16
+          encoder: OneHotEncoder
+          load_checkpoint_path: checkpoints/transform/Quantize
+      - module_name: v2ToImage
+          
+
+model:
+  backbone:
+    module_name: resnet18
+    kwargs:
+      mid_channels: [128, 256, 256, 512]
+      mid_strides: [1, 2, 1, 2]
+
+  head:
+    module_name: convnet3d
+    kwargs:
+      mid_channels: 256
+      out_channels: 64
+      dilations: [1, 2, 4, 8, 16]
+  kwargs: 
+    activation: mish
+    use_softmax: True
+
+
+training:
+  device: auto    # 'auto' or 'cuda:0' or 'cpu'
+  epochs: 200
+  loss: CrossEntropyLoss
+  optimizer:
+    module_name: SGD
+    kwargs:
+      lr: 0.1
+      momentum: 0.9
+      nesterov: True
+  scheduler:
+    module_name: ReduceLROnPlateau
+    kwargs:
+      mode: min
+      patience: 10
+      verbose: True
+  callbacks:
+    - module_name: earlystopping
+      kwargs:
+        target: val_loss  # 'train_loss', 'val_loss', 'train_acc', 'val_acc'
+        patience: 50
+        mode: min
+        min_delta: 0
+  load_checkpoint_path: checkpoints/model/Colorizer
+  
+  verbose_step: 3
+  show_batch_queue_max_size: 3
+  
+  wandb:
+    api_key: e69d06fcc3d68400a0d96551a93e5b7521a3eef5
+
+
+prediction:
+  device: cuda:0
+
+
+logging:
+  level: INFO
+  format: " %(asctime)23s | %(module)10s | %(funcName)20s | %(lineno)5d | %(levelname)8s | %(message)s"
+  handlers:
+    - log.txt
+    - stdout
